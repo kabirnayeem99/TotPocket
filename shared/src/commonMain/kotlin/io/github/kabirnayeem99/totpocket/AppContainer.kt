@@ -3,6 +3,7 @@ package io.github.kabirnayeem99.totpocket
 import androidx.compose.runtime.staticCompositionLocalOf
 import io.github.kabirnayeem99.totpocket.audio.SoundPlayer
 import io.github.kabirnayeem99.totpocket.device.DeviceController
+import io.github.kabirnayeem99.totpocket.settings.SettingsStore
 import kotlin.random.Random
 
 /**
@@ -12,6 +13,7 @@ import kotlin.random.Random
 class AppContainer(
     val soundPlayer: SoundPlayer,
     val device: DeviceController,
+    val settingsStore: SettingsStore,
     val random: Random = Random.Default,
 )
 

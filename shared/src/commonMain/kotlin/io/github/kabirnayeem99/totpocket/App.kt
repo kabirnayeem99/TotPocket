@@ -7,6 +7,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kabirnayeem99.totpocket.parent.ParentGateScreen
+import io.github.kabirnayeem99.totpocket.parent.ParentSettingsScreen
+import io.github.kabirnayeem99.totpocket.session.BedtimeScreen
+import io.github.kabirnayeem99.totpocket.session.SessionAction
+import io.github.kabirnayeem99.totpocket.session.SessionViewModel
+import io.github.kabirnayeem99.totpocket.ui.components.HoldToActivate
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -47,8 +61,24 @@ fun App(container: AppContainer) {
 
 @Composable
 private fun TotPocketNavHost() {
+    val container = LocalAppContainer.current
     val navigator = rememberSaveable(saver = Navigator.Saver) { Navigator() }
     val stores = viewModel { EntryViewModelStores() }
+    val session = viewModel { SessionViewModel(container.settingsStore, container.soundPlayer) }
+    val bedtime by session.bedtime.collectAsStateWithLifecycle()
+
+    // Play time only counts while TotPocket is in front.
+    LifecycleResumeEffect(session) {
+        session.onAction(SessionAction.Resumed)
+        onPauseOrDispose { session.onAction(SessionAction.Paused) }
+    }
+    // Bedtime closes whatever was open (stopping calls and sounds), then the lullaby plays.
+    LaunchedEffect(bedtime) {
+        if (bedtime) {
+            navigator.popToHome()
+            session.onAction(SessionAction.BedtimeShown)
+        }
+    }
     val savedStates = rememberSaveableStateHolder()
 
     DisposableEffect(navigator, stores, savedStates) {
@@ -62,28 +92,42 @@ private fun TotPocketNavHost() {
     // Always enabled: Back walks toward Home and is swallowed there — it never exits the app.
     PlatformBackHandler(enabled = true) { navigator.pop() }
 
-    AnimatedContent(
-        targetState = navigator.current,
-        contentKey = { it.id },
-        transitionSpec = {
-            (fadeIn(tween(250)) + scaleIn(tween(250), initialScale = 0.96f)) togetherWith fadeOut(tween(200))
-        },
-        label = "screen",
-    ) { entry ->
-        savedStates.SaveableStateProvider(entry.id) {
-            CompositionLocalProvider(LocalViewModelStoreOwner provides stores.ownerFor(entry.id)) {
-                RouteContent(entry.route, navigator)
+    Box(Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = navigator.current,
+            contentKey = { it.id },
+            transitionSpec = {
+                (fadeIn(tween(250)) + scaleIn(tween(250), initialScale = 0.96f)) togetherWith fadeOut(tween(200))
+            },
+            label = "screen",
+        ) { entry ->
+            savedStates.SaveableStateProvider(entry.id) {
+                CompositionLocalProvider(LocalViewModelStoreOwner provides stores.ownerFor(entry.id)) {
+                    RouteContent(entry.route, navigator, onParentUnlocked = { session.onAction(SessionAction.ParentUnlocked) })
+                }
             }
+        }
+        if (bedtime && navigator.current.route !is Route.Parent) {
+            PlatformBackHandler(enabled = true) {}
+            BedtimeScreen(onParentHold = { navigator.push(Route.Parent.Gate) })
         }
     }
 }
 
 @Composable
-private fun RouteContent(route: Route, navigator: Navigator) {
+private fun RouteContent(route: Route, navigator: Navigator, onParentUnlocked: () -> Unit) {
     val onHome = navigator::popToHome
     val onBack: () -> Unit = { navigator.pop() }
     when (route) {
-        Route.Home -> LauncherHomeScreen(onOpen = navigator::push)
+        Route.Home -> LauncherHomeScreen(
+            onOpen = navigator::push,
+            overlay = {
+                // The hidden way in for grown-ups: hold the top-right corner for three seconds.
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+                    HoldToActivate(onActivated = { navigator.push(Route.Parent.Gate) })
+                }
+            },
+        )
         Route.Gallery.Categories -> GalleryAlbumsScreen(
             onBack = onBack,
             onHome = onHome,
@@ -115,6 +159,14 @@ private fun RouteContent(route: Route, navigator: Navigator) {
             onOpenShapeMatch = { navigator.push(Route.Games.ShapeMatch) },
         )
         Route.Games.ShapeMatch -> ShapeMatchScreen(onBack = onBack, onHome = onHome)
-        is Route.Parent -> ComingSoonScreen(onBack = onBack, onHome = onHome)
+        Route.Parent.Gate -> ParentGateScreen(
+            onBack = onBack,
+            onHome = onHome,
+            onUnlocked = {
+                onParentUnlocked()
+                navigator.replace(Route.Parent.Settings)
+            },
+        )
+        Route.Parent.Settings -> ParentSettingsScreen(onBack = onBack, onHome = onHome)
     }
 }
