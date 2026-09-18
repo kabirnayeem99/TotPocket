@@ -11,8 +11,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
 
+    private val app: TotPocketApplication
+        get() = application as TotPocketApplication
+
     private val container: AppContainer
-        get() = (application as TotPocketApplication).container
+        get() = app.container
 
     private val insetsController: WindowInsetsControllerCompat by lazy {
         WindowCompat.getInsetsController(window, window.decorView)
@@ -29,8 +32,14 @@ class MainActivity : ComponentActivity() {
         insetsController.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         hideSystemBars()
+        app.deviceController.attach(this)
 
         setContent { App(container) }
+    }
+
+    override fun onDestroy() {
+        app.deviceController.detach(this)
+        super.onDestroy()
     }
 
     // Bars come back after dialogs, the pinning prompt, or an edge swipe; re-hide them whenever

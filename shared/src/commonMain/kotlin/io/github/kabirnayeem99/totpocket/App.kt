@@ -15,6 +15,9 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kabirnayeem99.totpocket.audio.Sounds
+import io.github.kabirnayeem99.totpocket.calls.CallContactsScreen
+import io.github.kabirnayeem99.totpocket.calls.CallScreen
+import io.github.kabirnayeem99.totpocket.calls.KeypadScreen
 import io.github.kabirnayeem99.totpocket.gallery.GalleryCategoriesScreen
 import io.github.kabirnayeem99.totpocket.gallery.SoundGridScreen
 import io.github.kabirnayeem99.totpocket.home.TotPocketHomeScreen
@@ -81,6 +84,20 @@ private fun RouteContent(route: Route, navigator: Navigator) {
             onOpenCategory = { navigator.push(Route.Gallery.Grid(it)) },
         )
         is Route.Gallery.Grid -> SoundGridScreen(categoryId = route.categoryId, onHome = onHome)
+        Route.Calls.Contacts -> CallContactsScreen(
+            onHome = onHome,
+            onCall = { navigator.push(Route.Calls.Active(it.value)) },
+            onOpenKeypad = { navigator.push(Route.Calls.Keypad) },
+        )
+        Route.Calls.Keypad -> KeypadScreen(
+            onHome = onHome,
+            onCall = { navigator.push(Route.Calls.Active(it.value)) },
+        )
+        is Route.Calls.Active -> CallScreen(
+            contactId = route.contactId,
+            onHome = onHome,
+            onFinished = { navigator.pop() },
+        )
         else -> ComingSoonScreen(route, onHome = onHome)
     }
 }
