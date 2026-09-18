@@ -94,6 +94,14 @@ object TotPocketIcons {
         icon("ExitFullScreen", "M5,16h3v3h2v-5H5v2zM8,8H5v2h5V5H8v3zM14,19h2v-3h3v-2h-5v5zM16,8V5h-2v5h5V8h-3z")
     }
 
+    val Play: ImageVector by lazy { icon("Play", "M8,5v14l11,-7z") }
+
+    val Replay: ImageVector by lazy {
+        icon("Replay", "M12,5V1L7,6l5,5V7c3.31,0 6,2.69 6,6s-2.69,6 -6,6 -6,-2.69 -6,-6H4c0,4.42 3.58,8 8,8s8,-3.58 8,-8 -3.58,-8 -8,-8z")
+    }
+
+    val Pause: ImageVector by lazy { icon("Pause", "M6,19h4V5H6v14zm8,-14v14h4V5h-4z") }
+
     val Home: ImageVector by lazy { icon("Home", "M10,20v-6h4v6h5v-8h3L12,3 2,12h3v8z") }
 
     /** A play button in a screen — YouTube Shorts' tab. */

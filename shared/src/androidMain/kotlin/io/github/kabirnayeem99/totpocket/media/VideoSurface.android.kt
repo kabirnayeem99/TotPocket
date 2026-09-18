@@ -4,6 +4,7 @@ import android.net.Uri
 import android.widget.VideoView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -12,7 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
-actual fun VideoSurface(uri: String, playKey: Int, onFinished: () -> Unit, modifier: Modifier) {
+actual fun VideoSurface(uri: String, playKey: Int, paused: Boolean, onFinished: () -> Unit, modifier: Modifier) {
     val context = LocalContext.current
     val currentOnFinished by rememberUpdatedState(onFinished)
     val videoView = remember(uri) {
@@ -28,6 +29,9 @@ actual fun VideoSurface(uri: String, playKey: Int, onFinished: () -> Unit, modif
         videoView.setVideoURI(Uri.parse(uri))
         videoView.start()
         onDispose { videoView.stopPlayback() }
+    }
+    LaunchedEffect(videoView, paused) {
+        if (paused) videoView.pause() else videoView.start()
     }
     AndroidView(factory = { videoView }, modifier = modifier)
 }

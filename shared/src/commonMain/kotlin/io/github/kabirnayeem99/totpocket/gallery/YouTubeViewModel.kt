@@ -36,7 +36,12 @@ data class PlayerState(
     val mode: PlayerMode = PlayerMode.Watch,
     /** Photo showing, for a slideshow. */
     val slide: Int = 0,
+    /** False once the video has ended (it waits for "watch again"). */
     val playing: Boolean = true,
+    /** Paused by the child with the pause button. */
+    val paused: Boolean = false,
+    /** How far into a slideshow we are, for its progress bar and slow zoom. */
+    val positionMs: Long = 0,
     /** Bumped on replay so a phone video restarts. */
     val playKey: Int = 0,
 )
@@ -69,6 +74,7 @@ sealed interface YouTubeAction {
     data object EnterFullScreen : YouTubeAction
     data object ExitFullScreen : YouTubeAction
     data object Replay : YouTubeAction
+    data object TogglePause : YouTubeAction
     data object Close : YouTubeAction
     /** A phone video reached its end. */
     data object VideoEnded : YouTubeAction
@@ -103,6 +109,11 @@ class YouTubeViewModel(
             YouTubeAction.EnterFullScreen -> playerState.update { it?.copy(mode = PlayerMode.FullScreen) }
             YouTubeAction.ExitFullScreen -> playerState.update { it?.copy(mode = PlayerMode.Watch) }
             YouTubeAction.Replay -> playerState.value?.let { start(it.video, it.mode, it.playKey + 1) }
+            YouTubeAction.TogglePause -> {
+                val paused = playerState.value?.paused ?: return
+                if (!paused) player.stop()
+                playerState.update { it?.copy(paused = !paused) }
+            }
             YouTubeAction.Close -> when (playerState.value?.mode) {
                 PlayerMode.FullScreen -> playerState.update { it?.copy(mode = PlayerMode.Watch) }
                 else -> {
@@ -119,10 +130,20 @@ class YouTubeViewModel(
         playerState.update { PlayerState(video, mode, slide = 0, playing = true, playKey = playKey) }
         if (video is MediaVideo.Slideshow) {
             slideshow = viewModelScope.launch {
-                video.photos.forEachIndexed { index, photo ->
-                    playerState.update { it?.copy(slide = index) }
-                    photo.sound?.let(player::play)
-                    delay(MediaVideo.SLIDE_MS)
+                // A clock that only moves while not paused; the photo on show follows it.
+                val total = video.durationMs
+                var position = 0L
+                var shown = -1
+                while (position < total) {
+                    delay(TICK_MS)
+                    if (playerState.value?.paused == true) continue
+                    position += TICK_MS
+                    val slide = (position / MediaVideo.SLIDE_MS).toInt().coerceAtMost(video.photos.lastIndex)
+                    if (slide != shown) {
+                        shown = slide
+                        video.photos[slide].sound?.let(player::play)
+                    }
+                    playerState.update { it?.copy(slide = slide, positionMs = position) }
                 }
                 player.stop()
                 finished()
@@ -149,5 +170,9 @@ class YouTubeViewModel(
 
     override fun onCleared() {
         stopAll()
+    }
+
+    private companion object {
+        const val TICK_MS = 100L
     }
 }

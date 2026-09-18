@@ -53,6 +53,7 @@ import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
 import io.github.kabirnayeem99.totpocket.ui.components.AppTopBar
 import io.github.kabirnayeem99.totpocket.ui.components.CallControl
 import io.github.kabirnayeem99.totpocket.ui.components.GestureBar
+import io.github.kabirnayeem99.totpocket.ui.components.StatusStrip
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
 import io.github.kabirnayeem99.totpocket.ui.components.isLandscape
 import io.github.kabirnayeem99.totpocket.ui.icons.TotPocketIcons
@@ -350,10 +351,11 @@ fun CallContent(
     Column(modifier.fillMaxSize().background(style.callBackground)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(Modifier.height(40.dp))
+                StatusStrip(contentColor = Color.White)
+                Spacer(Modifier.height(16.dp))
                 style.callHeader?.let { header ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (app == CallApp.WhatsApp) {
@@ -464,9 +466,11 @@ private fun VideoCallContent(
             // Header over the picture, like the real apps.
             Column(
                 Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)))
-                    .padding(top = 36.dp, bottom = 40.dp),
+                    .padding(bottom = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                StatusStrip(contentColor = Color.White)
+                Spacer(Modifier.height(8.dp))
                 style.callHeader?.let { header ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (app == CallApp.WhatsApp) {

@@ -70,31 +70,36 @@ fun AppTopBar(
     onBack: () -> Unit,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().background(style.barColor).padding(end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Looks like an ordinary back arrow; the touch area is a full toddler target.
-        ToddlerButton(
-            onClick = onBack,
-            contentDescription = "Back",
-            modifier = Modifier.size(TotPocketDimens.MinTouchTarget),
-            shape = CircleShape,
-            color = Color.Transparent,
-            outline = Color.Transparent,
-            outlineWidth = 1.dp,
+    // The drawn status strip, then a standard 56dp app bar — like any real app.
+    Column(Modifier.fillMaxWidth().background(style.barColor)) {
+        StatusStrip(contentColor = style.barContent)
+        Row(
+            modifier = Modifier.fillMaxWidth().height(56.dp).padding(start = 4.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(TotPocketIcons.Back, contentDescription = null, tint = style.barContent, modifier = Modifier.size(30.dp))
+            ToddlerButton(
+                onClick = onBack,
+                contentDescription = "Back",
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = Color.Transparent,
+                outline = Color.Transparent,
+                outlineWidth = 1.dp,
+                minSize = 48.dp,
+            ) {
+                Icon(TotPocketIcons.Back, contentDescription = null, tint = style.barContent, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = title,
+                color = style.barContent,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            actions()
         }
-        Text(
-            text = title,
-            color = style.barContent,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            modifier = Modifier.weight(1f),
-        )
-        actions()
     }
 }
 
@@ -104,19 +109,23 @@ fun AppTopBar(
  */
 @Composable
 fun GestureBar(color: Color, onHome: () -> Unit, modifier: Modifier = Modifier) {
+    // As thin as the real gesture area; the pill is the same size as HyperOS's.
     ToddlerButton(
         onClick = onHome,
         contentDescription = "Home",
-        modifier = modifier.fillMaxWidth().height(TotPocketDimens.MinTouchTarget * 0.5f),
+        modifier = modifier.fillMaxWidth().height(GestureBarHeight),
         shape = RoundedCornerShape(0.dp),
         color = Color.Transparent,
         outline = Color.Transparent,
         outlineWidth = 1.dp,
         pressedScale = 1f,
+        minSize = GestureBarHeight,
     ) {
-        Box(Modifier.width(132.dp).height(5.dp).background(color, CircleShape))
+        Box(Modifier.width(110.dp).height(4.dp).background(color, CircleShape))
     }
 }
+
+val GestureBarHeight = 20.dp
 
 /** A round button with an icon and a small caption, as on real in-call screens. */
 @Composable

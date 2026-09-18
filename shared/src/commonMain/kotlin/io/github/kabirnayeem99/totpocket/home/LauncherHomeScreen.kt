@@ -43,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.kabirnayeem99.totpocket.navigation.Route
+import io.github.kabirnayeem99.totpocket.ui.components.StatusStrip
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
 import io.github.kabirnayeem99.totpocket.ui.components.isLandscape
 import io.github.kabirnayeem99.totpocket.ui.launcher.HyperOsIconShape
@@ -86,7 +87,7 @@ fun LauncherHomeScreen(
     Box(modifier.fillMaxSize().background(SkyGradient)) {
         SkyDecorations(Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize()) {
-            StatusLine(clock.time)
+            StatusStrip(contentColor = Color.White, modifier = Modifier.padding(top = 2.dp))
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 20.dp)) {
                 if (isLandscape(maxWidth, maxHeight)) {
                     Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -111,25 +112,6 @@ fun LauncherHomeScreen(
             }
         }
         overlay()
-    }
-}
-
-/** The real status bar is hidden, so the home screen draws its own: time on the left, battery right. */
-@Composable
-private fun StatusLine(time: String) {
-    Row(
-        Modifier.fillMaxWidth().height(32.dp).padding(horizontal = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(time, style = LabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold))
-        Spacer(Modifier.weight(1f))
-        // Battery: outline, fill and the little cap.
-        Box(
-            Modifier.size(width = 24.dp, height = 12.dp).border(1.5.dp, Color.White, RoundedCornerShape(3.dp)).padding(2.dp),
-        ) {
-            Box(Modifier.fillMaxHeight().width(14.dp).background(Color.White, RoundedCornerShape(1.dp)))
-        }
-        Box(Modifier.padding(start = 1.dp).size(width = 2.dp, height = 5.dp).background(Color.White, RoundedCornerShape(1.dp)))
     }
 }
 
