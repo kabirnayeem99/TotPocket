@@ -19,6 +19,8 @@ import io.github.kabirnayeem99.totpocket.calls.CallContactsScreen
 import io.github.kabirnayeem99.totpocket.calls.CallScreen
 import io.github.kabirnayeem99.totpocket.calls.KeypadScreen
 import io.github.kabirnayeem99.totpocket.gallery.GalleryCategoriesScreen
+import io.github.kabirnayeem99.totpocket.games.GamePickerScreen
+import io.github.kabirnayeem99.totpocket.games.ShapeMatchScreen
 import io.github.kabirnayeem99.totpocket.gallery.SoundGridScreen
 import io.github.kabirnayeem99.totpocket.home.TotPocketHomeScreen
 import io.github.kabirnayeem99.totpocket.navigation.EntryViewModelStores
@@ -98,6 +100,11 @@ private fun RouteContent(route: Route, navigator: Navigator) {
             onHome = onHome,
             onFinished = { navigator.pop() },
         )
+        Route.Games.Picker -> GamePickerScreen(
+            onHome = onHome,
+            onOpenShapeMatch = { navigator.push(Route.Games.ShapeMatch) },
+        )
+        Route.Games.ShapeMatch -> ShapeMatchScreen(onHome = onHome)
         else -> ComingSoonScreen(route, onHome = onHome)
     }
 }
