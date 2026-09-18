@@ -1,5 +1,6 @@
 package io.github.kabirnayeem99.totpocket.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,8 @@ import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
 import io.github.kabirnayeem99.totpocket.ui.components.isLandscape
 import io.github.kabirnayeem99.totpocket.ui.launcher.HyperOsIconShape
 import io.github.kabirnayeem99.totpocket.ui.launcher.LauncherApp
+import io.github.kabirnayeem99.totpocket.ui.launcher.LauncherArt
+import org.jetbrains.compose.resources.painterResource
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketTheme
 import kotlinx.coroutines.delay
@@ -130,7 +133,19 @@ fun LauncherIcon(
             outline = Color.Transparent,
             outlineWidth = 1.dp,
         ) {
-            Icon(app.glyph, contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(size * 0.62f))
+            when (val art = app.art) {
+                is LauncherArt.Glyph -> Icon(
+                    art.vector,
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(size * art.scale),
+                )
+                is LauncherArt.Logo -> Image(
+                    painterResource(art.image),
+                    contentDescription = null,
+                    modifier = Modifier.size(size * art.scale),
+                )
+            }
         }
         if (showLabel) {
             Spacer(Modifier.height(8.dp))
