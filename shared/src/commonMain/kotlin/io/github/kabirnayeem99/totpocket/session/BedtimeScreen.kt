@@ -11,6 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,7 +59,7 @@ fun BedtimeScreen(onParentHold: () -> Unit, modifier: Modifier = Modifier) {
         )
         Text("✨", fontSize = 36.sp, modifier = Modifier.align(Alignment.TopStart).graphicsLayer { translationX = 120f; translationY = 360f; alpha = 0.7f })
         Text("✨", fontSize = 28.sp, modifier = Modifier.align(Alignment.BottomEnd).graphicsLayer { translationX = -140f; translationY = -420f; alpha = 0.6f })
-        HoldToActivate(onActivated = onParentHold, modifier = Modifier.align(Alignment.TopEnd))
+        HoldToActivate(onActivated = onParentHold, modifier = Modifier.align(Alignment.TopEnd).padding(top = 40.dp))
     }
 }
 

@@ -2,6 +2,7 @@ package io.github.kabirnayeem99.totpocket.parent
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -10,9 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,8 +42,10 @@ import io.github.kabirnayeem99.totpocket.settings.ParentSettings
 import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyle
 import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
+import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketTheme
 import kotlin.math.roundToInt
+import kotlin.time.Duration
 
 /** HyperOS Settings: light grey page, white rounded groups. */
 private val SettingsChrome = AppChromeStyle(Color(0xFFF5F5F7), Color(0xFFF5F5F7), Color(0xFF1B1B1B), Color(0xFF1B1B1B))
@@ -48,8 +58,8 @@ private val GreyText = Color(0xFF8A8A8E)
 @Composable
 fun ParentGateScreen(onBack: () -> Unit, onHome: () -> Unit, onUnlocked: () -> Unit) {
     val container = LocalAppContainer.current
-    val viewModel = viewModel { ParentGateViewModel(container.random) }
-    val question by viewModel.question.collectAsStateWithLifecycle()
+    val viewModel = viewModel { ParentGateViewModel(container.settingsStore) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnUnlocked by rememberUpdatedState(onUnlocked)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -58,44 +68,90 @@ fun ParentGateScreen(onBack: () -> Unit, onHome: () -> Unit, onUnlocked: () -> U
             }
         }
     }
-    ParentGateContent(question, viewModel::onAction, onBack, onHome)
+    ParentGateContent(state, viewModel::onAction, onBack, onHome)
 }
 
+/** A lock-screen style PIN pad: four dots and round keys. */
 @Composable
 fun ParentGateContent(
-    question: GateQuestion,
+    state: ParentGateUiState,
     onAction: (ParentGateAction) -> Unit,
     onBack: () -> Unit,
     onHome: () -> Unit,
 ) {
+    val title = when (state.step) {
+        GateStep.Create -> "Create a grown-up PIN"
+        GateStep.Confirm -> "Type the PIN again"
+        GateStep.Enter -> "Enter grown-up PIN"
+    }
+    val hint = when {
+        state.error && state.step == GateStep.Enter -> "Wrong PIN. Try again."
+        state.error -> "The PINs didn't match. Choose one again."
+        state.step == GateStep.Create -> "It protects settings, the status bar and exiting TotPocket."
+        else -> " "
+    }
     AppScaffold(title = "Grown-ups only", style = SettingsChrome, onBack = onBack, onHome = onHome) {
         Column(
-            Modifier.fillMaxSize().padding(24.dp),
+            Modifier.fillMaxSize().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("To open settings, answer:", color = GreyText, fontSize = 16.sp)
+            Text(title, color = DarkText, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                repeat(ParentSettings.PIN_LENGTH) { index ->
+                    Box(
+                        Modifier
+                            .size(16.dp)
+                            .background(if (index < state.entered) DarkText else Color(0xFFD5D5DA), CircleShape),
+                    )
+                }
+            }
             Spacer(Modifier.height(12.dp))
-            Text("${question.a} + ${question.b} = ?", color = DarkText, fontSize = 44.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(32.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                question.answers.forEach { answer ->
-                    ToddlerButton(
-                        onClick = { onAction(ParentGateAction.AnswerPicked(answer)) },
-                        contentDescription = answer.toString(),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
-                        color = Color.White,
-                        outline = Color.Transparent,
-                        outlineWidth = 1.dp,
-                        playTapSound = false,
-                        pressedScale = 0.96f,
-                    ) {
-                        Text(answer.toString(), color = DarkText, fontSize = 30.sp)
+            Text(
+                hint,
+                color = if (state.error) Color(0xFFF23B3B) else GreyText,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(24.dp))
+            PinPad(onAction)
+        }
+    }
+}
+
+@Composable
+private fun PinPad(onAction: (ParentGateAction) -> Unit) {
+    val rows = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9), listOf(null, 0, -1))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        rows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                row.forEach { key ->
+                    when (key) {
+                        null -> Spacer(Modifier.size(TotPocketDimens.MinTouchTarget))
+                        -1 -> PadKey("⌫", onClick = { onAction(ParentGateAction.Delete) }, filled = false)
+                        else -> PadKey(key.toString(), onClick = { onAction(ParentGateAction.Digit(key)) })
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PadKey(label: String, onClick: () -> Unit, filled: Boolean = true) {
+    ToddlerButton(
+        onClick = onClick,
+        contentDescription = label,
+        modifier = Modifier.size(TotPocketDimens.MinTouchTarget),
+        shape = CircleShape,
+        color = if (filled) Color.White else Color.Transparent,
+        outline = Color.Transparent,
+        outlineWidth = 1.dp,
+        playTapSound = false,
+        debounce = Duration.ZERO,
+    ) {
+        Text(label, color = DarkText, fontSize = 30.sp)
     }
 }
 
@@ -122,7 +178,11 @@ fun ParentSettingsContent(
     onHome: () -> Unit,
 ) {
     AppScaffold(title = "TotPocket settings", style = SettingsChrome, onBack = onBack, onHome = onHome) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Grown-up screen: allowed to scroll, it's not for the child.
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             Group {
                 Label("Volume limit", "${(state.settings.volumeCeiling * 100).roundToInt()}%")
                 Slider(
@@ -163,9 +223,39 @@ fun ParentSettingsContent(
                 )
             }
             Group {
+                ToggleRow(
+                    title = "Keep pinned",
+                    subtitle = "Pin TotPocket again every time it opens.",
+                    checked = state.settings.keepPinned,
+                    onClick = { onAction(ParentSettingsAction.KeepPinnedToggled) },
+                )
+                Spacer(Modifier.height(16.dp))
+                ToggleRow(
+                    title = "Show status bar",
+                    subtitle = "Let the status bar and notifications show. Off keeps them hidden.",
+                    checked = state.settings.showSystemBars,
+                    onClick = { onAction(ParentSettingsAction.ShowSystemBarsToggled) },
+                )
+            }
+            Group {
+                WideButton(text = "Change PIN", background = Color(0xFF8A8A8E), onClick = { onAction(ParentSettingsAction.ChangePin) })
+                Spacer(Modifier.height(12.dp))
                 WideButton(text = "Exit TotPocket", background = Color(0xFFF23B3B), onClick = { onAction(ParentSettingsAction.ExitApp) })
             }
         }
+    }
+}
+
+@Composable
+private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onClick: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) { Label(title, subtitle) }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { onClick() },
+            colors = SwitchDefaults.colors(checkedTrackColor = Accent),
+        )
     }
 }
 

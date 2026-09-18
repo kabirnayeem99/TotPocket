@@ -2,6 +2,9 @@ package io.github.kabirnayeem99.totpocket
 
 import androidx.compose.runtime.Composable
 
-/** Hides the status and navigation bars again whenever something reveals them. No-op where there are none. */
+/**
+ * Keeps the status and navigation bars hidden, hiding them again whenever something reveals
+ * them — unless a grown-up has [allowed] them. No-op where there are none.
+ */
 @Composable
-expect fun KeepSystemBarsHidden()
+expect fun KeepSystemBarsHidden(allowed: Boolean)

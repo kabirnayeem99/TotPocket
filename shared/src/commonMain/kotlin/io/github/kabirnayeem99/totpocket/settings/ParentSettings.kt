@@ -13,11 +13,18 @@ data class ParentSettings(
     val volumeCeiling: Float = DEFAULT_VOLUME,
     /** Foreground play time before bedtime, in minutes; 0 = no limit. */
     val playLimitMinutes: Int = 0,
+    /** The grown-up PIN guarding settings and exit; `null` until one is created. */
+    val pin: String? = null,
+    /** Re-pin TotPocket (lock task) every time it comes to the front. */
+    val keepPinned: Boolean = false,
+    /** Let the status bar and notifications show. Off: they're hidden and blocked. */
+    val showSystemBars: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_VOLUME = 0.6f
         const val MIN_VOLUME = 0.2f
         val PlayLimitChoices = listOf(0, 10, 15, 20)
+        const val PIN_LENGTH = 4
     }
 }
 

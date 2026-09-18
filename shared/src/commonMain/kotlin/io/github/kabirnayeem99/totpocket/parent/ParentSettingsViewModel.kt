@@ -23,6 +23,10 @@ sealed interface ParentSettingsAction {
     data class VolumeChanged(val fraction: Float) : ParentSettingsAction
     data class PlayLimitChosen(val minutes: Int) : ParentSettingsAction
     data object PinToggled : ParentSettingsAction
+    data object KeepPinnedToggled : ParentSettingsAction
+    data object ShowSystemBarsToggled : ParentSettingsAction
+    /** Forget the PIN; the gate asks for a new one next time. */
+    data object ChangePin : ParentSettingsAction
     /** The screen came back to the front — the pin state may have changed outside the app. */
     data object Refresh : ParentSettingsAction
     data object ExitApp : ParentSettingsAction
@@ -55,6 +59,18 @@ class ParentSettingsViewModel(
                 // The system confirms pinning asynchronously; show the intent now, Refresh corrects it.
                 pinned.update { !it }
             }
+            ParentSettingsAction.KeepPinnedToggled -> {
+                store.update { it.copy(keepPinned = !it.keepPinned) }
+                if (store.settings.value.keepPinned && !pinned.value) {
+                    device.pin()
+                    pinned.update { true }
+                }
+            }
+            ParentSettingsAction.ShowSystemBarsToggled -> {
+                store.update { it.copy(showSystemBars = !it.showSystemBars) }
+                device.setSystemBarsAllowed(store.settings.value.showSystemBars)
+            }
+            ParentSettingsAction.ChangePin -> store.update { it.copy(pin = null) }
             ParentSettingsAction.Refresh -> pinned.update { device.isPinned }
             ParentSettingsAction.ExitApp -> device.exitApp()
         }

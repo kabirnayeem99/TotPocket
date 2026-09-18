@@ -13,6 +13,13 @@ interface DeviceController {
 
     fun unpin()
 
+    /**
+     * Whether the status bar and notifications may show while TotPocket is locked. Enforced by
+     * the system only when TotPocket is the device owner (full kiosk); otherwise the app hides
+     * the bars itself and screen pinning blocks the notification shade.
+     */
+    fun setSystemBarsAllowed(allowed: Boolean)
+
     /** Unpins and closes TotPocket. Only reachable from the parent settings. */
     fun exitApp()
 }
@@ -23,5 +30,6 @@ object NoDeviceController : DeviceController {
     override val isPinned: Boolean = false
     override fun pin() = Unit
     override fun unpin() = Unit
+    override fun setSystemBarsAllowed(allowed: Boolean) = Unit
     override fun exitApp() = Unit
 }

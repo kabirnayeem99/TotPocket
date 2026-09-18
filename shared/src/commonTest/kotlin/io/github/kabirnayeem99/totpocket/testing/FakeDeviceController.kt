@@ -23,6 +23,13 @@ class FakeDeviceController : DeviceController {
         isPinned = false
     }
 
+    var systemBarsAllowed = false
+        private set
+
+    override fun setSystemBarsAllowed(allowed: Boolean) {
+        systemBarsAllowed = allowed
+    }
+
     override fun exitApp() {
         isPinned = false
         exited = true

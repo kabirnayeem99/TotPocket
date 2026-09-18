@@ -15,7 +15,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 
 @Composable
-actual fun KeepSystemBarsHidden() {
+actual fun KeepSystemBarsHidden(allowed: Boolean) {
     val view = LocalView.current
     val density = LocalDensity.current
     val direction = LocalLayoutDirection.current
@@ -25,10 +25,12 @@ actual fun KeepSystemBarsHidden() {
     val navigationBarShown = navigationBar.getBottom(density) > 0 ||
         navigationBar.getLeft(density, direction) > 0 ||
         navigationBar.getRight(density, direction) > 0
-    LaunchedEffect(statusBarShown, navigationBarShown) {
-        if (statusBarShown || navigationBarShown) {
-            val window = view.context.findActivity()?.window ?: return@LaunchedEffect
-            WindowCompat.getInsetsController(window, view).hide(WindowInsetsCompat.Type.systemBars())
+    LaunchedEffect(allowed, statusBarShown, navigationBarShown) {
+        val window = view.context.findActivity()?.window ?: return@LaunchedEffect
+        val controller = WindowCompat.getInsetsController(window, view)
+        when {
+            allowed -> controller.show(WindowInsetsCompat.Type.statusBars())
+            statusBarShown || navigationBarShown -> controller.hide(WindowInsetsCompat.Type.systemBars())
         }
     }
 }

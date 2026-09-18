@@ -34,9 +34,18 @@ class MainActivity : ComponentActivity() {
         // changes the window insets, and KeepSystemBarsHidden (in the shared UI) hides it again.
         insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         hideSystemBars()
+        app.deviceController.setSystemBarsAllowed(container.settingsStore.settings.value.showSystemBars)
         app.deviceController.attach(this)
 
         setContent { App(container) }
+    }
+
+    // When the grown-up chose "Keep pinned", every return to TotPocket locks it again.
+    override fun onResume() {
+        super.onResume()
+        if (container.settingsStore.settings.value.keepPinned && !app.deviceController.isPinned) {
+            app.deviceController.pin()
+        }
     }
 
     override fun onDestroy() {

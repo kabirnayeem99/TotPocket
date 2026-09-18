@@ -16,6 +16,9 @@ class AndroidSettingsStore(context: Context) : SettingsStore {
         ParentSettings(
             volumeCeiling = prefs.getFloat(KEY_VOLUME, ParentSettings.DEFAULT_VOLUME),
             playLimitMinutes = prefs.getInt(KEY_PLAY_LIMIT, 0),
+            pin = prefs.getString(KEY_PIN, null),
+            keepPinned = prefs.getBoolean(KEY_KEEP_PINNED, false),
+            showSystemBars = prefs.getBoolean(KEY_SHOW_BARS, false),
         ),
     )
     override val settings: StateFlow<ParentSettings> = _settings.asStateFlow()
@@ -26,11 +29,17 @@ class AndroidSettingsStore(context: Context) : SettingsStore {
         prefs.edit {
             putFloat(KEY_VOLUME, saved.volumeCeiling)
             putInt(KEY_PLAY_LIMIT, saved.playLimitMinutes)
+            putString(KEY_PIN, saved.pin)
+            putBoolean(KEY_KEEP_PINNED, saved.keepPinned)
+            putBoolean(KEY_SHOW_BARS, saved.showSystemBars)
         }
     }
 
     private companion object {
         const val KEY_VOLUME = "volume_ceiling"
         const val KEY_PLAY_LIMIT = "play_limit_minutes"
+        const val KEY_PIN = "grown_up_pin"
+        const val KEY_KEEP_PINNED = "keep_pinned"
+        const val KEY_SHOW_BARS = "show_system_bars"
     }
 }

@@ -9,6 +9,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,7 +55,8 @@ fun App(container: AppContainer) {
         LocalAppContainer provides container,
         LocalTapSound provides tapSound,
     ) {
-        KeepSystemBarsHidden()
+        val settings by container.settingsStore.settings.collectAsStateWithLifecycle()
+        KeepSystemBarsHidden(allowed = settings.showSystemBars)
         TotPocketTheme {
             TotPocketNavHost()
         }
@@ -123,8 +126,9 @@ private fun RouteContent(route: Route, navigator: Navigator, onParentUnlocked: (
         Route.Home -> LauncherHomeScreen(
             onOpen = navigator::push,
             overlay = {
-                // The hidden way in for grown-ups: hold the top-right corner for three seconds.
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+                // The hidden way in for grown-ups: hold the top-right corner for three seconds. Kept
+                // below the top edge, where a press would start the system's pull-down gesture.
+                Box(Modifier.fillMaxSize().padding(top = 40.dp), contentAlignment = Alignment.TopEnd) {
                     HoldToActivate(onActivated = { navigator.push(Route.Parent.Gate) })
                 }
             },
