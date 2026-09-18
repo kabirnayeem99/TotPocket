@@ -17,3 +17,6 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Wikimedia Commons downloads (re-fetched by tools/fetch_commons_photos.py)
+tools/.commons_cache/

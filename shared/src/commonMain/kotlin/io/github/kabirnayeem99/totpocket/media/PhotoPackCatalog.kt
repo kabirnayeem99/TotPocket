@@ -26,7 +26,26 @@ data class PhotoPackCatalog(
         val width: Int,
         val height: Int,
         val sound: String? = null,
+        val credit: Credit? = null,
     )
+
+    @Serializable
+    data class Credit(
+        val author: String? = null,
+        val source: String? = null,
+        val license: String? = null,
+        val url: String? = null,
+    ) {
+        /** "Photo: Jane Doe · CC BY-SA 4.0", or "Photo: Jane Doe on Unsplash". */
+        fun line(): String? {
+            val who = author ?: return null
+            return when {
+                source == "Unsplash" -> "Photo: $who on Unsplash"
+                license != null -> "Photo: $who · $license · $source"
+                else -> "Photo: $who"
+            }
+        }
+    }
 
     @Serializable
     data class Video(
@@ -53,6 +72,7 @@ fun PhotoPackCatalog.toLibrary(root: String): Pair<List<MediaAlbum>, List<MediaV
             image = ImageSource.FilePath("$root/${photo.image}"),
             thumb = ImageSource.FilePath("$root/${photo.thumb}"),
             sound = photo.sound?.let(::SoundRef),
+            credit = photo.credit?.line(),
         )
     }
     val albums = categories.map { category ->

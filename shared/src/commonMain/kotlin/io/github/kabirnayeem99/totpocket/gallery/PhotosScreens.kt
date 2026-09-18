@@ -170,18 +170,20 @@ private fun PhotoViewer(photos: List<MediaPhoto>, startIndex: Int, onAction: (Al
                     contentScale = ContentScale.Fit,
                     placeholder = Color.Black,
                 )
-                Text(
-                    photos[page].title,
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
-                        .padding(horizontal = 24.dp, vertical = 28.dp),
-                )
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(photos[page].title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                    photos[page].credit?.let { credit ->
+                        Spacer(Modifier.height(6.dp))
+                        Text(credit, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2)
+                    }
+                }
             }
         }
         GestureBar(color = Color.White, onHome = onHome)

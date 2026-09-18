@@ -25,6 +25,8 @@ data class MediaPhoto(
     val thumb: ImageSource,
     /** Plays when the photo is opened, if the clip is bundled. */
     val sound: SoundRef? = null,
+    /** Photographer and licence, shown small under the photo, e.g. "Photo: Jane Doe · CC BY-SA 4.0". */
+    val credit: String? = null,
 )
 
 /** A folder of photos: a photo-pack category ("Animals") or a phone folder ("Camera"). */

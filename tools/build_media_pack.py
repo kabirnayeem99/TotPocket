@@ -12,8 +12,10 @@ YouTube. Everything is zipped into the app's compose resources:
 
 Usage:  python3 tools/build_media_pack.py [SOURCE_DIR]      (default: ~/Downloads; needs Pillow)
 
-Photos are from Unsplash (Unsplash License: free to use, no permission needed). The photographer
-and photo page are recorded per photo anyway, from the Unsplash file name.
+Photos come from Unsplash (Unsplash License: free to use, no permission needed) and from Wikimedia
+Commons (approved entries in tools/commons_photos.json, fetched by tools/fetch_commons_photos.py;
+mostly CC BY / CC BY-SA). Each photo's author, licence and page are recorded in the catalog, and
+the app shows the credit under the photo.
 """
 
 import io
@@ -35,7 +37,11 @@ CATEGORIES = OrderedDict(
     animals="Animals",
     birds="Birds",
     critters="Bugs & critters",
+    food="Food",
+    body="My body",
+    things="Everyday things",
     vehicles="Vehicles",
+    nature="Nature & flowers",
     village="Village life",
 )
 
@@ -71,6 +77,46 @@ SUBJECTS = {
     "rickshaw": ("Rickshaws", None),
     "truck": ("Trucks", None),
     "people": ("Village life", None),
+    "sheep": ("Baa baa sheep", "files/gallery/animals/sheep.ogg"),
+    "horse": ("Horses", "files/gallery/animals/horse.ogg"),
+    "lion": ("Lions", "files/gallery/animals/lion.ogg"),
+    "zebra": ("Stripy zebras", None),
+    "giraffe": ("Tall giraffes", None),
+    "rabbit": ("Bunny rabbits", None),
+    "panda": ("Pandas", None),
+    "owl": ("Owls", "files/gallery/nature/birds.ogg"),
+    "peacock": ("Peacocks", None),
+    "penguin": ("Penguins", None),
+    "pigeon": ("Pigeons", "files/gallery/nature/birds.ogg"),
+    "turtle": ("Turtles", None),
+    "ladybug": ("Ladybugs", None),
+    "milk": ("Milk", None),
+    "jackfruit": ("Jackfruit", None),
+    "mango": ("Mangoes", None),
+    "banana": ("Bananas", None),
+    "rice": ("Rice for lunch", None),
+    "fruits": ("Fruits", None),
+    "chocolate": ("Chocolate", None),
+    "apple": ("Apples", None),
+    "orange": ("Oranges", None),
+    "watermelon": ("Watermelon", None),
+    "strawberry": ("Strawberries", None),
+    "beard": ("Beards", None),
+    "smile": ("Smiles", None),
+    "eye": ("Eyes", None),
+    "water": ("Water", None),
+    "toothbrush": ("Brush your teeth", None),
+    "airplane": ("Aeroplanes", None),
+    "helicopter": ("Helicopters", None),
+    "firetruck": ("Fire engines", None),
+    "tractor": ("Tractors", None),
+    "bicycle": ("Bicycles", None),
+    "rainbow": ("Rainbows", None),
+    "moon": ("The moon", None),
+    "sunflower": ("Sunflowers", "files/gallery/flowers/sunflower.ogg"),
+    "rose": ("Roses", "files/gallery/flowers/rose.ogg"),
+    "lotus": ("Lotus flowers", None),
+    "waterlily": ("Water lilies", None),
 }
 
 # source file -> (category, subject, title). Sorted by looking at every photo; the WhatsApp
@@ -264,20 +310,62 @@ PHOTOS = {
     "lisa-alam-DE51nul8T5Q-unsplash.jpg": ("village", "people", "Rickshaw puller"),
     "liu-water-pK70TlchTnM-unsplash.jpg": ("village", "people", "Boy and lamb"),
     "shahariar-nerov-ZF6Z57qRBko-unsplash.jpg": ("village", "people", "Cycling"),
+    # food, body and everyday things (second batch; a branded candy box and an unclear basket left out)
+    "ahmadreza-rezaie-eU2s_fonJkg-unsplash.jpg": ("food", "milk", "Milk"),
+    "aleksandar-kuresevic-F2wxdilfgjs-unsplash.jpg": ("body", "beard", "Beard"),
+    "amir-esrafili-jbWCiZ6MU-c-unsplash.jpg": ("body", "smile", "Big smile"),
+    "antonio-castellano-SZ6dkrFwCbY-unsplash.jpg": ("food", "jackfruit", "Jackfruit"),
+    "assad-tanoli-p5s10b6QGQQ-unsplash.jpg": ("village", "people", "Grandfather"),
+    "desirae-hayes-vitor-vxtBBfMTMZ0-unsplash.jpg": ("food", "mango", "Mango"),
+    "engin-akyurt-PCpoG06fcUI-unsplash.jpg": ("things", "water", "Glass of water"),
+    "giorgio-trovato-fczCr7MdE7U-unsplash.jpg": ("food", "banana", "Bananas"),
+    "inna-safa-7uAHbj6lyqI-unsplash.jpg": ("food", "rice", "Rice"),
+    "julia-zolotova-M_xIaxQE3Ms-unsplash.jpg": ("food", "fruits", "Fruits"),
+    "kevin-kevin-LCaBh7QSGr8-unsplash.jpg": ("food", "rice", "Rice"),
+    "nishaan-ahmed-KFIYWH03M9Y-unsplash.jpg": ("food", "rice", "Rice and fish"),
+    "pushpak-dsilva-r-hQw_obFd0-unsplash.jpg": ("food", "chocolate", "Chocolate"),
+    "rodrigo-dos-reis-DkTuGvgPotA-unsplash.jpg": ("food", "banana", "Lots of bananas"),
+    "roman-marchenko-Tin0iDzvfDE-unsplash.jpg": ("things", "toothbrush", "Toothbrush"),
+    "sara-groblechner-7TgbRVEYdYY-unsplash.jpg": ("things", "toothbrush", "Toothbrushes"),
+    "tetiana-bykovets-H22N-9s8AUw-unsplash.jpg": ("food", "chocolate", "Chocolate"),
+    "towfiqu-barbhuiya-9PlHtc53NM0-unsplash.jpg": ("food", "jackfruit", "Jackfruit"),
+    "utkarxh-rathore-DmBtO0VTvaY-unsplash.jpg": ("body", "eye", "Eye"),
+    "z-lh-ZwzIFSgSqOI-unsplash.jpg": ("food", "jackfruit", "Jackfruit tree"),
 }
 
 
 def credit(file_name: str) -> dict:
     stem = file_name.rsplit(".", 1)[0]
     if not stem.endswith("-unsplash"):
-        return {"author": None, "source": None, "url": None}
+        return {"author": None, "source": None, "license": None, "url": None}
     stem = stem[: -len("-unsplash")]
     photo_id, author_slug = stem[-11:], stem[:-12]
     return {
         "author": " ".join(part.capitalize() for part in author_slug.split("-") if part),
         "source": "Unsplash",
+        "license": "Unsplash License",
         "url": f"https://unsplash.com/photos/{photo_id}",
     }
+
+
+def commons_photos() -> dict:
+    """Approved Wikimedia Commons photos (tools/commons_photos.json), keyed by their cached file."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import fetch_commons_photos as commons
+
+    photos = {}
+    for entry in json.loads(commons.MANIFEST.read_text()) if commons.MANIFEST.exists() else []:
+        if not entry.get("approved"):
+            continue
+        commons.CACHE.mkdir(exist_ok=True)
+        path = commons.download(entry)
+        photos[str(path)] = (
+            entry["category"],
+            entry["subject"],
+            entry["title"],
+            {"author": entry["author"], "source": "Wikimedia Commons", "license": entry["license"], "url": entry["page"]},
+        )
+    return photos
 
 
 def webp(image: Image.Image, edge: int, quality: int) -> tuple[bytes, int, int]:
@@ -290,15 +378,16 @@ def webp(image: Image.Image, edge: int, quality: int) -> tuple[bytes, int, int]:
 
 def main() -> None:
     source = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Downloads"
-    photos = PHOTOS
+    photos = {name: (*info, credit(name)) for name, info in PHOTOS.items()}
+    photos.update(commons_photos())
     counters: dict[str, int] = defaultdict(int)
     entries, videos = [], defaultdict(list)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(OUT, "w", compression=zipfile.ZIP_STORED) as pack:
         for name in sorted(photos, key=lambda n: (list(CATEGORIES).index(photos[n][0]), photos[n][1], n)):
-            category, subject, title = photos[name]
-            path = source / name
+            category, subject, title, photo_credit = photos[name]
+            path = Path(name) if Path(name).is_absolute() else source / name
             if not path.exists():
                 print(f"missing, skipped: {name}")
                 continue
@@ -321,7 +410,7 @@ def main() -> None:
                 "width": width,
                 "height": height,
                 "sound": SUBJECTS[subject][1],
-                "credit": credit(name),
+                "credit": photo_credit,
             })
             videos[subject].append(f"{category}/{photo_id}")
             print(f"{photo_id:14} {len(full) // 1024:4d} KB  {title}")
