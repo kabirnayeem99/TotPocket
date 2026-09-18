@@ -27,6 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -180,43 +182,89 @@ private fun WatchPage(player: PlayerState, upNext: List<MediaVideo>, onAction: (
                 if (!player.playing) ReplayButton(onClick = { onAction(YouTubeAction.Replay) }, modifier = Modifier.align(Alignment.Center))
             }
         }
-        item(key = "about") {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
-                Text(player.video.title, color = DarkText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(10.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChannelAvatar(player.video.channel)
-                    Spacer(Modifier.width(10.dp))
-                    Text(player.video.channel, color = DarkText, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                Spacer(Modifier.height(16.dp))
-                Text("Up next", color = DarkText, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
+        item(key = "about") { VideoInfo(player.video) }
+        item(key = "divider-1") { Divider() }
+        item(key = "channel") { ChannelRow(player.video.channel) }
+        item(key = "divider-2") { Divider() }
         items(upNext, key = { "next-${it.id}" }) { next ->
-            ToddlerButton(
-                onClick = { onAction(YouTubeAction.Open(next)) },
-                contentDescription = next.title,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(0.dp),
-                color = Color.Transparent,
-                outline = Color.Transparent,
-                outlineWidth = 1.dp,
-                playTapSound = false,
-                pressedScale = 0.98f,
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Thumbnail(next, Modifier.width(160.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(8.dp)))
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(next.title, color = DarkText, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(next.channel, color = GreyText, fontSize = 12.sp, maxLines = 1)
-                    }
-                }
+            FeedCard(next, onClick = { onAction(YouTubeAction.Open(next)) })
+        }
+    }
+}
+
+/** Title, a "views · age" line and like / dislike — after the YouTube clone. No share or download. */
+@Composable
+private fun VideoInfo(video: MediaVideo) {
+    var liked by remember(video.id) { mutableStateOf(false) }
+    var disliked by remember(video.id) { mutableStateOf(false) }
+    val seed = video.id.hashCode().let { if (it < 0) -it else it }
+    Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp)) {
+        Text(video.title, color = DarkText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text("${seed % 900 + 12}K views · ${seed % 5 + 1}y ago", color = GreyText, fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp))
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Pill(if (liked) "👍 ${seed % 90 + 11}K" else "👍 ${seed % 90 + 10}K", selected = liked) {
+                liked = !liked
+                if (liked) disliked = false
+            }
+            Pill("👎", selected = disliked) {
+                disliked = !disliked
+                if (disliked) liked = false
             }
         }
     }
+}
+
+@Composable
+private fun Pill(text: String, selected: Boolean, onClick: () -> Unit) {
+    ToddlerButton(
+        onClick = onClick,
+        contentDescription = text,
+        shape = RoundedCornerShape(50),
+        color = if (selected) DarkText else Color(0xFFF2F2F2),
+        outline = Color.Transparent,
+        outlineWidth = 1.dp,
+        pressedScale = 0.95f,
+        minSize = 44.dp,
+    ) {
+        Text(text, color = if (selected) Color.White else DarkText, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
+    }
+}
+
+/** Channel picture, name and subscribers, with YouTube's red SUBSCRIBE. */
+@Composable
+private fun ChannelRow(channel: String) {
+    var subscribed by remember(channel) { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        ChannelAvatar(channel)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(channel, color = DarkText, fontSize = 17.sp)
+            Text("${channel.length * 31}K subscribers", color = GreyText, fontSize = 13.sp)
+        }
+        ToddlerButton(
+            onClick = { subscribed = !subscribed },
+            contentDescription = "Subscribe",
+            shape = RoundedCornerShape(50),
+            color = Color.Transparent,
+            outline = Color.Transparent,
+            outlineWidth = 1.dp,
+            pressedScale = 0.95f,
+            minSize = 48.dp,
+        ) {
+            Text(
+                if (subscribed) "SUBSCRIBED" else "SUBSCRIBE",
+                color = if (subscribed) GreyText else BrandColors.YouTube,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun Divider() {
+    Box(Modifier.fillMaxWidth().padding(vertical = 6.dp).height(1.dp).background(Color(0xFFE5E5E5)))
 }
 
 /** Photos cross-fading with a slow zoom, and YouTube's red progress bar along the bottom. */
