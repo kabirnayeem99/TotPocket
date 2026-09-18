@@ -6,6 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
@@ -36,15 +41,26 @@ class MainActivity : ComponentActivity() {
         hideSystemBars()
         app.deviceController.setSystemBarsAllowed(container.settingsStore.settings.value.showSystemBars)
         app.deviceController.attach(this)
+        // Restores the home-app choice after "Exit TotPocket" withdrew it.
+        app.deviceController.setHomeApp(container.settingsStore.settings.value.homeApp, askToChoose = false)
+        keepPinnedWhileVisible()
 
         setContent { App(container) }
     }
 
-    // When the grown-up chose "Keep pinned", every return to TotPocket locks it again.
-    override fun onResume() {
-        super.onResume()
-        if (container.settingsStore.settings.value.keepPinned && !app.deviceController.isPinned) {
-            app.deviceController.pin()
+    // With "Keep pinned" on, TotPocket pins itself whenever it's on screen and, if something
+    // unpins it (e.g. the swipe-up-and-hold gesture), asks to pin again a moment later.
+    private fun keepPinnedWhileVisible() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    // No window focus means the system pin prompt (or another dialog) is showing.
+                    if (hasWindowFocus() && container.settingsStore.settings.value.keepPinned && !app.deviceController.isPinned) {
+                        app.deviceController.pin()
+                    }
+                    delay(PIN_CHECK_INTERVAL_MS)
+                }
+            }
         }
     }
 
@@ -64,6 +80,10 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         container.soundPlayer.stop()
+    }
+
+    private companion object {
+        const val PIN_CHECK_INTERVAL_MS = 3_000L
     }
 
     private fun hideSystemBars() {

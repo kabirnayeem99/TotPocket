@@ -225,9 +225,17 @@ fun ParentSettingsContent(
             Group {
                 ToggleRow(
                     title = "Keep pinned",
-                    subtitle = "Pin TotPocket again every time it opens.",
+                    subtitle = "Pins TotPocket when it opens and asks again if it gets unpinned. Tip: turn on " +
+                        "\"Ask for PIN before unpinning\" in the phone's screen pinning settings.",
                     checked = state.settings.keepPinned,
                     onClick = { onAction(ParentSettingsAction.KeepPinnedToggled) },
+                )
+                Spacer(Modifier.height(16.dp))
+                ToggleRow(
+                    title = "Use as home app",
+                    subtitle = "Pick TotPocket as the phone's home app, so Home always comes back here.",
+                    checked = state.settings.homeApp,
+                    onClick = { onAction(ParentSettingsAction.HomeAppToggled) },
                 )
                 Spacer(Modifier.height(16.dp))
                 ToggleRow(

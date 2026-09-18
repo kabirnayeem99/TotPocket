@@ -15,8 +15,10 @@ data class ParentSettings(
     val playLimitMinutes: Int = 0,
     /** The grown-up PIN guarding settings and exit; `null` until one is created. */
     val pin: String? = null,
-    /** Re-pin TotPocket (lock task) every time it comes to the front. */
-    val keepPinned: Boolean = false,
+    /** Keep TotPocket pinned (lock task): pin on open, and ask again whenever it gets unpinned. */
+    val keepPinned: Boolean = true,
+    /** Offer TotPocket as the phone's home app, so the Home button always comes back to it. */
+    val homeApp: Boolean = false,
     /** Let the status bar and notifications show. Off: they're hidden and blocked. */
     val showSystemBars: Boolean = false,
 ) {

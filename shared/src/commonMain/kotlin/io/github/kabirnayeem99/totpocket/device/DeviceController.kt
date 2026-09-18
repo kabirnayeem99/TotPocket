@@ -20,7 +20,13 @@ interface DeviceController {
      */
     fun setSystemBarsAllowed(allowed: Boolean)
 
-    /** Unpins and closes TotPocket. Only reachable from the parent settings. */
+    /**
+     * Offers (or withdraws) TotPocket as the phone's home app. When [askToChoose], the system's
+     * home-app chooser opens so the grown-up can pick TotPocket.
+     */
+    fun setHomeApp(enabled: Boolean, askToChoose: Boolean)
+
+    /** Unpins, stops being the home app, and closes TotPocket. Only reachable from the parent settings. */
     fun exitApp()
 }
 
@@ -31,5 +37,6 @@ object NoDeviceController : DeviceController {
     override fun pin() = Unit
     override fun unpin() = Unit
     override fun setSystemBarsAllowed(allowed: Boolean) = Unit
+    override fun setHomeApp(enabled: Boolean, askToChoose: Boolean) = Unit
     override fun exitApp() = Unit
 }

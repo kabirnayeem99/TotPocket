@@ -30,7 +30,15 @@ class FakeDeviceController : DeviceController {
         systemBarsAllowed = allowed
     }
 
+    var homeApp = false
+        private set
+
+    override fun setHomeApp(enabled: Boolean, askToChoose: Boolean) {
+        homeApp = enabled
+    }
+
     override fun exitApp() {
+        homeApp = false
         isPinned = false
         exited = true
     }

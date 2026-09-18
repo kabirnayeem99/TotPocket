@@ -13,7 +13,12 @@ class TotPocketApplication : Application() {
         private set
 
     // Lazy: the Application has no context until onCreate, and ComponentName needs one.
-    val deviceController by lazy { AndroidDeviceController(ComponentName(this, TotPocketAdminReceiver::class.java)) }
+    val deviceController by lazy {
+        AndroidDeviceController(
+            admin = ComponentName(this, TotPocketAdminReceiver::class.java),
+            homeAlias = ComponentName(this, "$packageName.HomeAlias"),
+        )
+    }
 
     override fun onCreate() {
         super.onCreate()

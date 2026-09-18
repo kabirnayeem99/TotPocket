@@ -25,6 +25,7 @@ sealed interface ParentSettingsAction {
     data object PinToggled : ParentSettingsAction
     data object KeepPinnedToggled : ParentSettingsAction
     data object ShowSystemBarsToggled : ParentSettingsAction
+    data object HomeAppToggled : ParentSettingsAction
     /** Forget the PIN; the gate asks for a new one next time. */
     data object ChangePin : ParentSettingsAction
     /** The screen came back to the front — the pin state may have changed outside the app. */
@@ -69,6 +70,10 @@ class ParentSettingsViewModel(
             ParentSettingsAction.ShowSystemBarsToggled -> {
                 store.update { it.copy(showSystemBars = !it.showSystemBars) }
                 device.setSystemBarsAllowed(store.settings.value.showSystemBars)
+            }
+            ParentSettingsAction.HomeAppToggled -> {
+                store.update { it.copy(homeApp = !it.homeApp) }
+                device.setHomeApp(store.settings.value.homeApp, askToChoose = true)
             }
             ParentSettingsAction.ChangePin -> store.update { it.copy(pin = null) }
             ParentSettingsAction.Refresh -> pinned.update { device.isPinned }

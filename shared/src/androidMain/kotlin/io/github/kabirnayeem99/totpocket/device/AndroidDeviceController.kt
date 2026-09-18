@@ -4,6 +4,9 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.Settings
 import android.view.WindowManager
 import java.lang.ref.WeakReference
 
@@ -17,7 +20,11 @@ import java.lang.ref.WeakReference
  * - **Kiosk** (TotPocket set as device owner with `dpm set-device-owner`): locks with no prompt,
  *   and the status bar and notifications are switched off by the system unless allowed.
  */
-class AndroidDeviceController(private val admin: ComponentName) : DeviceController {
+class AndroidDeviceController(
+    private val admin: ComponentName,
+    /** The activity-alias carrying the HOME intent filter; disabled unless the grown-up opts in. */
+    private val homeAlias: ComponentName,
+) : DeviceController {
 
     private var activityRef: WeakReference<Activity>? = null
     private var screenOn = false
@@ -61,8 +68,22 @@ class AndroidDeviceController(private val admin: ComponentName) : DeviceControll
         applyKioskPolicy()
     }
 
+    override fun setHomeApp(enabled: Boolean, askToChoose: Boolean) {
+        val activity = activityRef?.get() ?: return
+        activity.packageManager.setComponentEnabledSetting(
+            homeAlias,
+            if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        if (enabled && askToChoose) {
+            activity.startActivity(Intent(Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
     override fun exitApp() {
         val activity = activityRef?.get() ?: return
+        // Hand Home back to the phone's own launcher, or it would just reopen TotPocket.
+        setHomeApp(enabled = false, askToChoose = false)
         activity.runOnUiThread {
             if (isPinned) activity.stopLockTask()
             activity.finishAndRemoveTask()

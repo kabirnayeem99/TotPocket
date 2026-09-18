@@ -21,6 +21,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Lets a grown-up pick TotPocket as the phone's home app. Disabled until they opt in. -->
+        <activity-alias
+            android:name=".HomeAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <receiver
             android:name=".TotPocketAdminReceiver"
             android:exported="true"
