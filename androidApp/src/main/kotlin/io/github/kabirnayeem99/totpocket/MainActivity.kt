@@ -1,6 +1,10 @@
 package io.github.kabirnayeem99.totpocket
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +25,11 @@ class MainActivity : ComponentActivity() {
 
     private val container: AppContainer
         get() = app.container
+
+    // Read-only access to the phone's photos and videos, for Photos and YouTube.
+    private val mediaPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        container.mediaLibrary.refresh()
+    }
 
     private val insetsController: WindowInsetsControllerCompat by lazy {
         WindowCompat.getInsetsController(window, window.decorView)
@@ -44,6 +53,7 @@ class MainActivity : ComponentActivity() {
         // Restores the home-app choice after "Exit TotPocket" withdrew it.
         app.deviceController.setHomeApp(container.settingsStore.settings.value.homeApp, askToChoose = false)
         keepPinnedWhileVisible()
+        requestMediaAccess()
 
         setContent { App(container) }
     }
@@ -80,6 +90,16 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         container.soundPlayer.stop()
+    }
+
+    private fun requestMediaAccess() {
+        val wanted = if (Build.VERSION.SDK_INT >= 33) {
+            listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        val missing = wanted.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) mediaPermissions.launch(missing.toTypedArray())
     }
 
     private companion object {

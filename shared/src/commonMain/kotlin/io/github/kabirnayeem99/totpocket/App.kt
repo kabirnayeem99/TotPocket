@@ -35,8 +35,8 @@ import io.github.kabirnayeem99.totpocket.calls.CallApp
 import io.github.kabirnayeem99.totpocket.calls.CallContactsScreen
 import io.github.kabirnayeem99.totpocket.calls.CallScreen
 import io.github.kabirnayeem99.totpocket.calls.KeypadScreen
-import io.github.kabirnayeem99.totpocket.gallery.GalleryAlbumsScreen
-import io.github.kabirnayeem99.totpocket.gallery.PhotoGridScreen
+import io.github.kabirnayeem99.totpocket.gallery.AlbumScreen
+import io.github.kabirnayeem99.totpocket.gallery.PhotosAlbumsScreen
 import io.github.kabirnayeem99.totpocket.gallery.YouTubeScreen
 import io.github.kabirnayeem99.totpocket.games.GamePickerScreen
 import io.github.kabirnayeem99.totpocket.games.ShapeMatchScreen
@@ -133,12 +133,12 @@ private fun RouteContent(route: Route, navigator: Navigator, onParentUnlocked: (
                 }
             },
         )
-        Route.Gallery.Categories -> GalleryAlbumsScreen(
+        Route.Gallery.Categories -> PhotosAlbumsScreen(
             onBack = onBack,
             onHome = onHome,
             onOpenAlbum = { navigator.push(Route.Gallery.Grid(it)) },
         )
-        is Route.Gallery.Grid -> PhotoGridScreen(categoryId = route.categoryId, onBack = onBack, onHome = onHome)
+        is Route.Gallery.Grid -> AlbumScreen(albumId = route.categoryId, onBack = onBack, onHome = onHome)
         Route.YouTube -> YouTubeScreen(onBack = onBack, onHome = onHome)
         is Route.Calls.Contacts -> CallContactsScreen(
             app = route.app,

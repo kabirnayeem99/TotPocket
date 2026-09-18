@@ -5,6 +5,8 @@ import android.content.ComponentName
 import io.github.kabirnayeem99.totpocket.audio.AndroidSoundPlayer
 import io.github.kabirnayeem99.totpocket.audio.Sounds
 import io.github.kabirnayeem99.totpocket.device.AndroidDeviceController
+import io.github.kabirnayeem99.totpocket.media.AndroidImageLoader
+import io.github.kabirnayeem99.totpocket.media.AndroidMediaLibrary
 import io.github.kabirnayeem99.totpocket.settings.AndroidSettingsStore
 
 class TotPocketApplication : Application() {
@@ -27,6 +29,8 @@ class TotPocketApplication : Application() {
             soundPlayer = soundPlayer,
             device = deviceController,
             settingsStore = AndroidSettingsStore(this),
+            mediaLibrary = AndroidMediaLibrary(this),
+            imageLoader = AndroidImageLoader(this),
         )
     }
 }
