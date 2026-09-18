@@ -1,83 +1,79 @@
 package io.github.kabirnayeem99.totpocket
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import io.github.kabirnayeem99.totpocket.home.HomeSection
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.kabirnayeem99.totpocket.audio.Sounds
 import io.github.kabirnayeem99.totpocket.home.TotPocketHomeScreen
-import io.github.kabirnayeem99.totpocket.ui.icons.TotPocketIcons
-import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketColors
-import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
+import io.github.kabirnayeem99.totpocket.navigation.EntryViewModelStores
+import io.github.kabirnayeem99.totpocket.navigation.Navigator
+import io.github.kabirnayeem99.totpocket.navigation.Route
+import io.github.kabirnayeem99.totpocket.ui.components.LocalTapSound
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketTheme
 
-/** Root of the shared UI. `null` section = home. */
+/** Root of the shared UI. */
 @Composable
-@Preview
-fun App() {
-    var section by rememberSaveable { mutableStateOf<HomeSection?>(null) }
-
-    // Always enabled: system Back never leaves the app. Inside a section it returns home;
-    // on home it's swallowed.
-    PlatformBackHandler(enabled = true) { section = null }
-
-    TotPocketTheme {
-        when (val current = section) {
-            null -> TotPocketHomeScreen(onSectionClick = { section = it })
-            else -> SectionPlaceholder(current, onHome = { section = null })
+fun App(container: AppContainer) {
+    val tapSound = remember(container) { { container.soundPlayer.playEffect(Sounds.Boop) } }
+    CompositionLocalProvider(
+        LocalAppContainer provides container,
+        LocalTapSound provides tapSound,
+    ) {
+        TotPocketTheme {
+            TotPocketNavHost()
         }
     }
 }
 
-/** Stand-in until Calls / Gallery / Games land: a solid colour field and one big home button. */
 @Composable
-private fun SectionPlaceholder(section: HomeSection, onHome: () -> Unit) {
-    val color = when (section) {
-        HomeSection.Calls -> TotPocketColors.Red
-        HomeSection.Gallery -> TotPocketColors.Blue
-        HomeSection.Games -> TotPocketColors.Yellow
+private fun TotPocketNavHost() {
+    val navigator = rememberSaveable(saver = Navigator.Saver) { Navigator() }
+    val stores = viewModel { EntryViewModelStores() }
+    val savedStates = rememberSaveableStateHolder()
+
+    DisposableEffect(navigator, stores, savedStates) {
+        navigator.onEntryRemoved = { entry ->
+            stores.clear(entry.id)
+            savedStates.removeState(entry.id)
+        }
+        onDispose { navigator.onEntryRemoved = {} }
     }
-    Box(
-        modifier = Modifier.fillMaxSize().background(color).padding(TotPocketDimens.ScreenPadding),
-        contentAlignment = Alignment.TopStart,
-    ) {
-        HomeButton(onHome)
+
+    // Always enabled: Back walks toward Home and is swallowed there — it never exits the app.
+    PlatformBackHandler(enabled = true) { navigator.pop() }
+
+    AnimatedContent(
+        targetState = navigator.current,
+        contentKey = { it.id },
+        transitionSpec = {
+            (fadeIn(tween(250)) + scaleIn(tween(250), initialScale = 0.96f)) togetherWith fadeOut(tween(200))
+        },
+        label = "screen",
+    ) { entry ->
+        savedStates.SaveableStateProvider(entry.id) {
+            CompositionLocalProvider(LocalViewModelStoreOwner provides stores.ownerFor(entry.id)) {
+                RouteContent(entry.route, navigator)
+            }
+        }
     }
 }
 
 @Composable
-private fun HomeButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(TotPocketDimens.MinTouchTarget * 1.25f)
-            .clip(CircleShape)
-            .background(Color.White)
-            .border(TotPocketDimens.CardOutline, TotPocketColors.Outline, CircleShape)
-            .clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = TotPocketIcons.Home,
-            contentDescription = "Home",
-            tint = TotPocketColors.Green,
-            modifier = Modifier.size(72.dp),
-        )
+private fun RouteContent(route: Route, navigator: Navigator) {
+    val onHome = navigator::popToHome
+    when (route) {
+        Route.Home -> TotPocketHomeScreen(onOpen = navigator::push)
+        else -> ComingSoonScreen(route, onHome = onHome)
     }
 }

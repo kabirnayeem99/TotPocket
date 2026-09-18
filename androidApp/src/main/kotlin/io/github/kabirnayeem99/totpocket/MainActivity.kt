@@ -5,13 +5,14 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
+
+    private val container: AppContainer
+        get() = (application as TotPocketApplication).container
 
     private val insetsController: WindowInsetsControllerCompat by lazy {
         WindowCompat.getInsetsController(window, window.decorView)
@@ -29,23 +30,23 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         hideSystemBars()
 
-        setContent { App() }
+        setContent { App(container) }
     }
 
-    // Bars come back after dialogs, the recents/pinning prompt, or an edge swipe; re-hide them
-    // whenever we regain focus.
+    // Bars come back after dialogs, the pinning prompt, or an edge swipe; re-hide them whenever
+    // we regain focus.
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemBars()
     }
 
+    // Nothing keeps playing once the app is out of sight.
+    override fun onStop() {
+        super.onStop()
+        container.soundPlayer.stop()
+    }
+
     private fun hideSystemBars() {
         insetsController.hide(WindowInsetsCompat.Type.systemBars())
     }
-}
-
-@Preview(widthDp = 360, heightDp = 780)
-@Composable
-fun AppAndroidPreview() {
-    App()
 }
