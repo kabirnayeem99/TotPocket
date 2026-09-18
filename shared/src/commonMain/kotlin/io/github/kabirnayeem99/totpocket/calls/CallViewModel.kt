@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-enum class CallPhase { Ringing, InCall, Ended }
+enum class CallPhase { Calling, InCall, Ended }
 
 @Immutable
 data class CallUiState(
@@ -32,7 +32,6 @@ data class CallUiState(
 )
 
 sealed interface CallAction {
-    data object Answer : CallAction
     data object HangUp : CallAction
 }
 
@@ -49,7 +48,7 @@ class CallViewModel(
 ) : ViewModel() {
 
     private val script = CallScript(contact)
-    private val phase = MutableStateFlow(CallPhase.Ringing)
+    private val phase = MutableStateFlow(CallPhase.Calling)
     private var phaseJob: Job? = null
     private var lastLine: SoundRef? = null
 
@@ -61,27 +60,25 @@ class CallViewModel(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = CallUiState(contact, CallPhase.Ringing, isTalking = false),
+        initialValue = CallUiState(contact, CallPhase.Calling, isTalking = false),
     )
 
     init {
         device.keepScreenOn(true)
-        player.play(Sounds.Ringtone, loop = true)
+        player.play(Sounds.Ringback, loop = true)
         phaseJob = viewModelScope.launch {
-            delay(CallScript.RingLimit)
-            endCall(sayBye = false)
+            delay(CallScript.ConnectDelay)
+            connect()
         }
     }
 
     fun onAction(action: CallAction) {
         when (action) {
-            CallAction.Answer -> if (phase.value == CallPhase.Ringing) answer()
             CallAction.HangUp -> if (phase.value != CallPhase.Ended) endCall(sayBye = phase.value == CallPhase.InCall)
         }
     }
 
-    private fun answer() {
-        phaseJob?.cancel()
+    private fun connect() {
         phase.update { CallPhase.InCall }
         player.play(script.greeting)
         phaseJob = viewModelScope.launch {

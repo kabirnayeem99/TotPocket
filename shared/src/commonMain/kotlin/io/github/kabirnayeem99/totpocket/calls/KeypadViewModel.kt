@@ -13,18 +13,18 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 
 /** A keypad key. [sound] is its dial tone, expected at `files/calls/dtmf_<name>.ogg`. */
-enum class KeypadKey(val label: String, soundName: String) {
-    One("1", "1"), Two("2", "2"), Three("3", "3"),
-    Four("4", "4"), Five("5", "5"), Six("6", "6"),
-    Seven("7", "7"), Eight("8", "8"), Nine("9", "9"),
-    Star("✱", "star"), Zero("0", "0"), Hash("#", "hash");
+enum class KeypadKey(val label: String, val letters: String, soundName: String) {
+    One("1", "", "1"), Two("2", "ABC", "2"), Three("3", "DEF", "3"),
+    Four("4", "GHI", "4"), Five("5", "JKL", "5"), Six("6", "MNO", "6"),
+    Seven("7", "PQRS", "7"), Eight("8", "TUV", "8"), Nine("9", "WXYZ", "9"),
+    Star("*", "", "star"), Zero("0", "+", "0"), Hash("#", "", "hash");
 
     val sound: SoundRef = SoundRef("files/calls/dtmf_$soundName.ogg")
 }
 
 @Immutable
-data class KeypadUiState(val dialled: Int) {
-    val canCall: Boolean get() = dialled > 0
+data class KeypadUiState(val dialled: String) {
+    val canCall: Boolean get() = dialled.isNotEmpty()
 }
 
 sealed interface KeypadAction {
@@ -37,12 +37,12 @@ sealed interface KeypadEffect {
 }
 
 /**
- * Pretend dialling: every key beeps and adds a dot (numbers are never shown — the child doesn't
- * need them, and it keeps real numbers out of the picture). Calling rings the silly monkey.
+ * Pretend dialling, like the real dialer: every key beeps and its digit appears. Whatever is
+ * dialled, calling rings the silly monkey — no real number is ever called.
  */
 class KeypadViewModel(private val player: SoundPlayer) : ViewModel() {
 
-    private val _state = MutableStateFlow(KeypadUiState(dialled = 0))
+    private val _state = MutableStateFlow(KeypadUiState(dialled = ""))
     val state: StateFlow<KeypadUiState> = _state.asStateFlow()
 
     private val _effects = Channel<KeypadEffect>(Channel.BUFFERED)
@@ -56,17 +56,17 @@ class KeypadViewModel(private val player: SoundPlayer) : ViewModel() {
         when (action) {
             is KeypadAction.KeyPressed -> {
                 player.playEffect(action.key.sound)
-                _state.update { it.copy(dialled = (it.dialled + 1).coerceAtMost(MAX_DOTS)) }
+                _state.update { if (it.dialled.length < MAX_DIGITS) it.copy(dialled = it.dialled + action.key.label) else it }
             }
             KeypadAction.CallPressed -> {
                 if (!_state.value.canCall) return
-                _state.update { it.copy(dialled = 0) }
+                _state.update { it.copy(dialled = "") }
                 _effects.trySend(KeypadEffect.StartCall(CallContacts.SillyMonkey.id))
             }
         }
     }
 
     companion object {
-        const val MAX_DOTS = 8
+        const val MAX_DIGITS = 13
     }
 }

@@ -54,12 +54,14 @@ fun ToddlerButton(
     outlineWidth: Dp = TotPocketDimens.CardOutline,
     playTapSound: Boolean = true,
     debounce: Duration = 400.milliseconds,
+    pressedScale: Float = 0.92f,
+    contentAlignment: Alignment = Alignment.Center,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
+        targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "toddlerPressScale",
     )
@@ -90,7 +92,7 @@ fun ToddlerButton(
                 onClick = click,
             )
             .semantics(mergeDescendants = true) { this.contentDescription = contentDescription },
-        contentAlignment = Alignment.Center,
+        contentAlignment = contentAlignment,
         content = content,
     )
 }

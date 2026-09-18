@@ -39,7 +39,8 @@ object Sounds {
     val Pop = SoundRef("files/ui/pop.ogg")
     val Chime = SoundRef("files/ui/chime.ogg")
     val Lullaby = SoundRef("files/ui/lullaby.ogg")
-    val Ringtone = SoundRef("files/calls/ringtone.ogg")
+    /** The ringing heard while waiting for the other person to pick up. */
+    val Ringback = SoundRef("files/calls/ringback.ogg")
 
     val Effects: List<SoundRef> = listOf(Boop, Pop, Chime)
 }

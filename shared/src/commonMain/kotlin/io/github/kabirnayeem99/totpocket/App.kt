@@ -89,16 +89,19 @@ private fun RouteContent(route: Route, navigator: Navigator) {
         is Route.Gallery.Grid -> SoundGridScreen(categoryId = route.categoryId, onHome = onHome)
         is Route.Calls.Contacts -> CallContactsScreen(
             app = route.app,
+            onBack = { navigator.pop() },
             onHome = onHome,
             onCall = { navigator.push(Route.Calls.Active(it.value, route.app)) },
             onOpenKeypad = { navigator.push(Route.Calls.Keypad) },
         )
         Route.Calls.Keypad -> KeypadScreen(
+            onBack = { navigator.pop() },
             onHome = onHome,
             onCall = { navigator.push(Route.Calls.Active(it.value, CallApp.Phone)) },
         )
         is Route.Calls.Active -> CallScreen(
             contactId = route.contactId,
+            app = route.app,
             onHome = onHome,
             onFinished = { navigator.pop() },
         )

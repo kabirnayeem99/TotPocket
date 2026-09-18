@@ -10,9 +10,10 @@ import kotlin.time.Duration.Companion.seconds
  * How a pretend call unfolds. Pure rules, no timers: the ViewModel asks what to play and how
  * long to wait.
  *
- * A call rings for at most [RingLimit], then — once answered — greets the child, answers
- * with a short "mm-hmm" every [FillerGapMin]–[FillerGapMax] (never the same line twice in a
- * row), and says goodbye after [CallLength]. The goodbye screen stays for [EndedHold].
+ * The child makes the call, so it rings back for [ConnectDelay] and then the other person picks
+ * up: they greet the child, answer with a short "mm-hmm" every [FillerGapMin]–[FillerGapMax]
+ * (never the same line twice in a row), and say goodbye after [CallLength]. The "call ended"
+ * screen stays for [EndedHold].
  */
 class CallScript(private val contact: Contact) {
 
@@ -28,7 +29,7 @@ class CallScript(private val contact: Contact) {
         random.nextLong(FillerGapMin.inWholeMilliseconds, FillerGapMax.inWholeMilliseconds + 1).milliseconds
 
     companion object {
-        val RingLimit: Duration = 10.seconds
+        val ConnectDelay: Duration = 3.seconds
         val CallLength: Duration = 60.seconds
         val EndedHold: Duration = 2.seconds
         val FillerGapMin: Duration = 4.seconds

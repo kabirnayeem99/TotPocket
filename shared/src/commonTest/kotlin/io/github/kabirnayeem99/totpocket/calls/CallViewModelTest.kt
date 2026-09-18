@@ -35,39 +35,29 @@ class CallViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `a call starts ringing with a looping ringtone and keeps the screen awake`() = runTest(dispatcher) {
+    fun `a call starts by ringing back and keeps the screen awake`() = runTest(dispatcher) {
         val viewModel = newCall()
-        assertEquals(CallPhase.Ringing, viewModel.state.value.phase)
-        assertEquals(FakeSoundPlayer.Event.Played(Sounds.Ringtone, loop = true), player.events.first())
+        assertEquals(CallPhase.Calling, viewModel.state.value.phase)
+        assertEquals(FakeSoundPlayer.Event.Played(Sounds.Ringback, loop = true), player.events.first())
         assertTrue(device.screenOn)
     }
 
     @Test
-    fun `an unanswered call stops ringing after ten seconds and closes quietly`() = runTest(dispatcher) {
+    fun `the other person picks up after a few seconds and greets the child`() = runTest(dispatcher) {
         val viewModel = newCall()
-        viewModel.effects.test {
-            advanceTimeBy(CallScript.RingLimit - 1.milliseconds)
-            runCurrent()
-            assertEquals(1, player.played.size)
+        advanceTimeBy(CallScript.ConnectDelay - 1.milliseconds)
+        runCurrent()
+        assertEquals(CallPhase.Calling, viewModel.state.value.phase)
 
-            advanceTimeBy(2.milliseconds)
-            runCurrent()
-            assertEquals(1, player.stopCount)
-            assertFalse(device.screenOn)
-            assertEquals(listOf(Sounds.Ringtone), player.played, "no goodbye for a call nobody answered")
-
-            advanceTimeBy(CallScript.EndedHold)
-            assertEquals(CallEffect.Finished, awaitItem())
-        }
+        advanceTimeBy(2.milliseconds)
+        runCurrent()
+        assertEquals(CallPhase.InCall, viewModel.state.value.phase)
+        assertEquals(mum.greeting, player.played.last())
     }
 
     @Test
-    fun `answering plays the greeting and then short replies every few seconds`() = runTest(dispatcher) {
-        val viewModel = newCall()
-        viewModel.onAction(CallAction.Answer)
-        runCurrent()
-        assertEquals(mum.greeting, player.played.last())
-
+    fun `short replies follow every few seconds`() = runTest(dispatcher) {
+        newCall().connectNow()
         player.finishClip()
         advanceTimeBy(CallScript.FillerGapMax + 1.milliseconds)
         runCurrent()
@@ -76,19 +66,16 @@ class CallViewModelTest : MainDispatcherTest() {
 
     @Test
     fun `a reply never interrupts a line that is still playing`() = runTest(dispatcher) {
-        val viewModel = newCall()
-        viewModel.onAction(CallAction.Answer)
-        runCurrent()
-        // Greeting never "finishes" here, so no filler may start.
+        newCall().connectNow()
+        // The greeting never "finishes" here, so no reply may start.
         advanceTimeBy(30.seconds)
         runCurrent()
-        assertEquals(listOf(Sounds.Ringtone, mum.greeting), player.played)
+        assertEquals(listOf(Sounds.Ringback, mum.greeting), player.played)
     }
 
     @Test
     fun `the call says goodbye by itself after a minute`() = runTest(dispatcher) {
-        val viewModel = newCall()
-        viewModel.onAction(CallAction.Answer)
+        val viewModel = newCall().connectNow()
         viewModel.effects.test {
             advanceTimeBy(CallScript.CallLength + 1.milliseconds)
             runCurrent()
@@ -103,9 +90,7 @@ class CallViewModelTest : MainDispatcherTest() {
 
     @Test
     fun `hanging up mid-call says bye and cancels every pending timer`() = runTest(dispatcher) {
-        val viewModel = newCall()
-        viewModel.onAction(CallAction.Answer)
-        runCurrent()
+        val viewModel = newCall().connectNow()
         viewModel.onAction(CallAction.HangUp)
         runCurrent()
         val heardAtHangUp = player.played.toList()
@@ -117,34 +102,36 @@ class CallViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `hanging up while ringing is silent`() = runTest(dispatcher) {
+    fun `hanging up before anyone answers is silent and stops the ringing`() = runTest(dispatcher) {
         val viewModel = newCall()
-        viewModel.onAction(CallAction.HangUp)
-        runCurrent()
-        assertEquals(CallPhase.Ended, viewModel.state.value.phase)
-        assertEquals(listOf(Sounds.Ringtone), player.played)
-    }
+        viewModel.effects.test {
+            viewModel.onAction(CallAction.HangUp)
+            runCurrent()
+            assertEquals(CallPhase.Ended, viewModel.state.value.phase)
+            assertEquals(1, player.stopCount)
+            assertFalse(device.screenOn)
 
-    @Test
-    fun `answer only works while ringing`() = runTest(dispatcher) {
-        val viewModel = newCall()
-        viewModel.onAction(CallAction.HangUp)
-        viewModel.onAction(CallAction.Answer)
-        runCurrent()
-        assertEquals(CallPhase.Ended, viewModel.state.value.phase)
-        assertFalse(mum.greeting in player.played)
+            advanceTimeBy(CallScript.ConnectDelay + CallScript.EndedHold)
+            assertEquals(CallEffect.Finished, awaitItem())
+        }
+        assertEquals(listOf(Sounds.Ringback), player.played, "nobody picks up after hanging up")
     }
 
     @Test
     fun `the caller shows as talking only while one of their lines plays`() = runTest(dispatcher) {
         val viewModel = newCall()
         viewModel.state.test {
-            assertFalse(awaitItem().isTalking, "the ringtone is not the caller talking")
-            viewModel.onAction(CallAction.Answer)
+            assertFalse(awaitItem().isTalking, "the ringback is not the caller talking")
+            advanceTimeBy(CallScript.ConnectDelay + 1.milliseconds)
             assertTrue(expectMostRecentAfter { runCurrent() }.isTalking)
             player.finishClip()
             assertFalse(awaitItem().isTalking)
         }
+    }
+
+    private fun CallViewModel.connectNow(): CallViewModel = also {
+        dispatcher.scheduler.advanceTimeBy(CallScript.ConnectDelay + 1.milliseconds)
+        dispatcher.scheduler.runCurrent()
     }
 
     private fun <T> app.cash.turbine.TurbineTestContext<T>.expectMostRecentAfter(block: () -> Unit): T {

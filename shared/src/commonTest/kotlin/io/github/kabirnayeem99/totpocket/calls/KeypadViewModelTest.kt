@@ -14,12 +14,12 @@ class KeypadViewModelTest : MainDispatcherTest() {
     private val player = FakeSoundPlayer()
 
     @Test
-    fun `each key beeps its own tone and adds a dot`() = runTest(dispatcher) {
+    fun `each key beeps its own tone and shows its digit`() = runTest(dispatcher) {
         val viewModel = KeypadViewModel(player)
         viewModel.onAction(KeypadAction.KeyPressed(KeypadKey.Five))
         viewModel.onAction(KeypadAction.KeyPressed(KeypadKey.Hash))
 
-        assertEquals(2, viewModel.state.value.dialled)
+        assertEquals("5#", viewModel.state.value.dialled)
         assertEquals(
             listOf<FakeSoundPlayer.Event>(FakeSoundPlayer.Event.Effect(KeypadKey.Five.sound), FakeSoundPlayer.Event.Effect(KeypadKey.Hash.sound)),
             player.events,
@@ -27,10 +27,10 @@ class KeypadViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `dots stop growing so they always fit on screen`() = runTest(dispatcher) {
+    fun `the number stops growing so it always fits on screen`() = runTest(dispatcher) {
         val viewModel = KeypadViewModel(player)
         repeat(30) { viewModel.onAction(KeypadAction.KeyPressed(KeypadKey.One)) }
-        assertEquals(KeypadViewModel.MAX_DOTS, viewModel.state.value.dialled)
+        assertEquals(KeypadViewModel.MAX_DIGITS, viewModel.state.value.dialled.length)
         assertEquals(30, player.events.size, "every press still beeps")
     }
 
@@ -45,14 +45,14 @@ class KeypadViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `calling after dialling rings the silly monkey and clears the dots`() = runTest(dispatcher) {
+    fun `calling after dialling rings the silly monkey and clears the number`() = runTest(dispatcher) {
         val viewModel = KeypadViewModel(player)
         viewModel.effects.test {
             viewModel.onAction(KeypadAction.KeyPressed(KeypadKey.Seven))
             assertTrue(viewModel.state.value.canCall)
             viewModel.onAction(KeypadAction.CallPressed)
             assertEquals(KeypadEffect.StartCall(CallContacts.SillyMonkey.id), awaitItem())
-            assertEquals(0, viewModel.state.value.dialled)
+            assertEquals("", viewModel.state.value.dialled)
         }
     }
 
