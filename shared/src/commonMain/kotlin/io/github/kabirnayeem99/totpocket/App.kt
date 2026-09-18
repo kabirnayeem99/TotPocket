@@ -53,6 +53,7 @@ fun App(container: AppContainer) {
         LocalAppContainer provides container,
         LocalTapSound provides tapSound,
     ) {
+        KeepSystemBarsHidden()
         TotPocketTheme {
             TotPocketNavHost()
         }

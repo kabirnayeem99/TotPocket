@@ -29,8 +29,10 @@ class MainActivity : ComponentActivity() {
         window.attributes = window.attributes.apply {
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
         }
-        insetsController.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        // "Transient" bars (shown by an edge swipe such as the Back gesture) never tell the app
+        // they're up, so they'd linger for seconds. With the default behaviour a revealed bar
+        // changes the window insets, and KeepSystemBarsHidden (in the shared UI) hides it again.
+        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         hideSystemBars()
         app.deviceController.attach(this)
 
