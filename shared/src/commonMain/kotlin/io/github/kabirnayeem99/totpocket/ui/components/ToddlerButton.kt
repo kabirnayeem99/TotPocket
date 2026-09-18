@@ -56,6 +56,7 @@ fun ToddlerButton(
     debounce: Duration = 400.milliseconds,
     pressedScale: Float = 0.92f,
     contentAlignment: Alignment = Alignment.Center,
+    minSize: Dp = TotPocketDimens.MinTouchTarget,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -75,7 +76,7 @@ fun ToddlerButton(
 
     Box(
         modifier = modifier
-            .sizeIn(minWidth = TotPocketDimens.MinTouchTarget, minHeight = TotPocketDimens.MinTouchTarget)
+            .sizeIn(minWidth = minSize, minHeight = minSize)
             // Scale is read in the draw phase only — no recomposition per animation frame.
             .graphicsLayer {
                 scaleX = scale
