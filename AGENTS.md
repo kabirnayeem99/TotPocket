@@ -39,7 +39,7 @@ Only run Gradle when the task needs verification or the user asks:
 - `./gradlew :androidApp:assembleDebug` — build the Android app
 - `./gradlew :shared:testAndroidHostTest` — shared unit tests (count the results; don't trust a
   green `./gradlew test`)
-- `./gradlew :shared:iosSimulatorArm64Test` — iOS tests (optional)
+- `./gradlew -PenableIos=true :shared:iosSimulatorArm64Test` — iOS tests (optional). iOS targets are off by default (`enableIos=false` in `gradle.properties`) so Android builds stay fast.
 
 There is no detekt/ktlint setup yet. Follow [wiki/detekt-rules.md](wiki/detekt-rules.md) by hand.
 

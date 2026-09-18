@@ -7,14 +7,19 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+// iOS targets are opt-in (see `enableIos` in gradle.properties) so Android builds stay fast.
+val iosEnabled = providers.gradleProperty("enableIos").getOrElse("false").toBoolean()
+
 kotlin {
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
+    if (iosEnabled) {
+        listOf(
+            iosArm64(),
+            iosSimulatorArm64()
+        ).forEach { iosTarget ->
+            iosTarget.binaries.framework {
+                baseName = "Shared"
+                isStatic = true
+            }
         }
     }
     
