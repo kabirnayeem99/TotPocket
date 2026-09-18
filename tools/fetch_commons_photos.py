@@ -24,6 +24,7 @@ which require crediting the author — the app shows the credit under each photo
 """
 
 import argparse
+import hashlib
 import html
 import io
 import json
@@ -145,8 +146,12 @@ def search(words: str, limit: int, quality_only: bool = True) -> list[dict]:
 
 
 def cache_path(entry: dict) -> Path:
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", entry["file"].removeprefix("File:"))
-    return CACHE / safe
+    """Readable name plus a hash of the Commons title, so titles in other scripts never collide."""
+    title = entry["file"].removeprefix("File:")
+    stem, _, ext = title.rpartition(".")
+    safe = re.sub(r"[^A-Za-z0-9-]+", "_", stem).strip("_")[:80]
+    digest = hashlib.sha1(title.encode()).hexdigest()[:8]
+    return CACHE / f"{safe}-{digest}.{ext.lower()}"
 
 
 def download(entry: dict) -> Path:
