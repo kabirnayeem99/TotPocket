@@ -62,7 +62,11 @@ import io.github.kabirnayeem99.totpocket.games.shapematch.fill
 import io.github.kabirnayeem99.totpocket.games.shapematch.outline
 import io.github.kabirnayeem99.totpocket.ui.components.SectionCard
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerGrid
-import io.github.kabirnayeem99.totpocket.ui.components.ToddlerScaffold
+import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyle
+import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
+import io.github.kabirnayeem99.totpocket.ui.launcher.BrandColors
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.padding
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketColors
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketTheme
@@ -71,16 +75,24 @@ import kotlin.math.roundToInt
 
 // ---------------------------------------------------------------- picker
 
+private val GamesChrome = AppChromeStyle(
+    background = TotPocketColors.YellowTint,
+    barColor = BrandColors.Games,
+    barContent = Color.White,
+    gestureBar = Color(0xFF1B1B1B),
+)
+
 private enum class Game(val label: String) { Shapes("Shapes") }
 
 @Composable
 fun GamePickerScreen(
+    onBack: () -> Unit,
     onHome: () -> Unit,
     onOpenShapeMatch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ToddlerScaffold(onHome = onHome, modifier = modifier, background = TotPocketColors.YellowTint) {
-        ToddlerGrid(items = Game.entries, portraitColumns = 1, landscapeColumns = 1) { game, cellModifier ->
+    AppScaffold(title = "Games", style = GamesChrome, onBack = onBack, onHome = onHome, modifier = modifier) {
+        ToddlerGrid(items = Game.entries, modifier = Modifier.padding(24.dp), portraitColumns = 1, landscapeColumns = 1) { game, cellModifier ->
             SectionCard(
                 onClick = {
                     when (game) {
@@ -103,11 +115,11 @@ fun GamePickerScreen(
 // ---------------------------------------------------------------- shape match
 
 @Composable
-fun ShapeMatchScreen(onHome: () -> Unit, modifier: Modifier = Modifier) {
+fun ShapeMatchScreen(onBack: () -> Unit, onHome: () -> Unit, modifier: Modifier = Modifier) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { ShapeMatchViewModel(container.soundPlayer, container.random) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ShapeMatchContent(state, viewModel::onAction, onHome, modifier)
+    ShapeMatchContent(state, viewModel::onAction, onBack, onHome, modifier)
 }
 
 /**
@@ -118,10 +130,11 @@ fun ShapeMatchScreen(onHome: () -> Unit, modifier: Modifier = Modifier) {
 fun ShapeMatchContent(
     state: ShapeMatchUiState,
     onAction: (ShapeMatchAction) -> Unit,
+    onBack: () -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ToddlerScaffold(onHome = onHome, modifier = modifier, background = TotPocketColors.YellowTint) {
+    AppScaffold(title = "Shapes", style = GamesChrome, onBack = onBack, onHome = onHome, modifier = modifier) {
         if (state.phase == ShapeMatchPhase.Done) {
             AllDone()
         } else {
@@ -322,6 +335,7 @@ private fun ShapeMatchContentPreview() {
         ShapeMatchContent(
             ShapeMatchUiState(round, placed = setOf(ShapeKind.Star), phase = ShapeMatchPhase.Playing),
             onAction = {},
+            onBack = {},
             onHome = {},
         )
     }

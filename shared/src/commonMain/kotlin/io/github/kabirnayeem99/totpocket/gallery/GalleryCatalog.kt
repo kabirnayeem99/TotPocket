@@ -13,6 +13,8 @@ data class GalleryItem(
     val name: String,
     val emoji: String,
     val sound: SoundRef,
+    /** A soft, photo-like backdrop colour (ARGB) for this picture. */
+    val backdrop: Long,
 )
 
 @Immutable
@@ -28,6 +30,12 @@ data class GalleryCategory(
  * `composeResources/files/gallery/<category>/<item>.ogg` and is simply silent until it's added.
  */
 object GalleryCatalog {
+
+    // Declared first: the categories below read it while initialising.
+    private val Backdrops = listOf(
+        0xFFC8E6C9, 0xFFBBDEFB, 0xFFFFE0B2, 0xFFF8BBD0, 0xFFD1C4E9, 0xFFFFF9C4,
+        0xFFB2EBF2, 0xFFFFCCBC, 0xFFDCEDC8, 0xFFE1BEE7, 0xFFB3E5FC, 0xFFFFECB3,
+    )
 
     val Animals = category(
         "animals", "Animals", "🐮",
@@ -54,12 +62,13 @@ object GalleryCatalog {
             id = id,
             name = name,
             emoji = emoji,
-            items = items.map { (itemId, itemEmoji) ->
+            items = items.mapIndexed { index, (itemId, itemEmoji) ->
                 GalleryItem(
                     id = GalleryItemId(itemId),
                     name = itemId.replaceFirstChar { it.uppercase() },
                     emoji = itemEmoji,
                     sound = SoundRef("files/gallery/$id/$itemId.ogg"),
+                    backdrop = Backdrops[index % Backdrops.size],
                 )
             },
         )

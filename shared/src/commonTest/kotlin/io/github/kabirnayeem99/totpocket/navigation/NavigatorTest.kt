@@ -79,7 +79,7 @@ class NavigatorTest {
     fun `every route survives encoding`() {
         val routes = listOf(
             Route.Home, Route.Calls.Contacts(CallApp.Phone), Route.Calls.Contacts(CallApp.Imo), Route.Calls.Keypad, Route.Calls.Active("grandma", CallApp.WhatsApp),
-            Route.Gallery.Categories, Route.Gallery.Grid("flowers"), Route.Games.Picker,
+            Route.Gallery.Categories, Route.Gallery.Grid("flowers"), Route.YouTube, Route.Games.Picker,
             Route.Games.ShapeMatch, Route.Parent.Gate, Route.Parent.Settings,
         )
         routes.forEach { assertEquals(it, Route.decode(Route.encode(it))) }

@@ -26,7 +26,7 @@ enum class LauncherApp(
     WhatsApp("WhatsApp", BrandColors.WhatsApp, Route.Calls.Contacts(CallApp.WhatsApp)),
     Imo("imo", BrandColors.Imo, Route.Calls.Contacts(CallApp.Imo)),
     Gallery("Gallery", BrandColors.Gallery, Route.Gallery.Categories),
-    YouTube("YouTube", Color.White, Route.Gallery.Grid("animals")),
+    YouTube("YouTube", Color.White, Route.YouTube),
     Games("Games", BrandColors.Games, Route.Games.Picker);
 
     val glyph: ImageVector

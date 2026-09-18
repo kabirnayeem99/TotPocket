@@ -19,6 +19,9 @@ sealed interface Route {
         data class Grid(val categoryId: String) : Gallery
     }
 
+    /** The pretend YouTube: animal "videos". */
+    data object YouTube : Route
+
     sealed interface Games : Route {
         data object Picker : Games
         data object ShapeMatch : Games
@@ -37,6 +40,7 @@ sealed interface Route {
             is Calls.Active -> "calls/active/${route.app.id}/${route.contactId}"
             Gallery.Categories -> "gallery"
             is Gallery.Grid -> "gallery/grid/${route.categoryId}"
+            YouTube -> "youtube"
             Games.Picker -> "games"
             Games.ShapeMatch -> "games/shape-match"
             Parent.Gate -> "parent/gate"
@@ -51,6 +55,7 @@ sealed interface Route {
             value.startsWith("calls/") -> Calls.Contacts(CallApp.fromId(value.removePrefix("calls/")))
             value == "gallery" -> Gallery.Categories
             value.startsWith("gallery/grid/") -> Gallery.Grid(value.removePrefix("gallery/grid/"))
+            value == "youtube" -> YouTube
             value == "games" -> Games.Picker
             value == "games/shape-match" -> Games.ShapeMatch
             value == "parent/gate" -> Parent.Gate

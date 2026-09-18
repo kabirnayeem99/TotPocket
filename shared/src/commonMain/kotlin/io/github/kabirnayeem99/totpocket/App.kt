@@ -19,10 +19,11 @@ import io.github.kabirnayeem99.totpocket.calls.CallApp
 import io.github.kabirnayeem99.totpocket.calls.CallContactsScreen
 import io.github.kabirnayeem99.totpocket.calls.CallScreen
 import io.github.kabirnayeem99.totpocket.calls.KeypadScreen
-import io.github.kabirnayeem99.totpocket.gallery.GalleryCategoriesScreen
+import io.github.kabirnayeem99.totpocket.gallery.GalleryAlbumsScreen
+import io.github.kabirnayeem99.totpocket.gallery.PhotoGridScreen
+import io.github.kabirnayeem99.totpocket.gallery.YouTubeScreen
 import io.github.kabirnayeem99.totpocket.games.GamePickerScreen
 import io.github.kabirnayeem99.totpocket.games.ShapeMatchScreen
-import io.github.kabirnayeem99.totpocket.gallery.SoundGridScreen
 import io.github.kabirnayeem99.totpocket.home.LauncherHomeScreen
 import io.github.kabirnayeem99.totpocket.navigation.EntryViewModelStores
 import io.github.kabirnayeem99.totpocket.navigation.Navigator
@@ -80,22 +81,25 @@ private fun TotPocketNavHost() {
 @Composable
 private fun RouteContent(route: Route, navigator: Navigator) {
     val onHome = navigator::popToHome
+    val onBack: () -> Unit = { navigator.pop() }
     when (route) {
         Route.Home -> LauncherHomeScreen(onOpen = navigator::push)
-        Route.Gallery.Categories -> GalleryCategoriesScreen(
+        Route.Gallery.Categories -> GalleryAlbumsScreen(
+            onBack = onBack,
             onHome = onHome,
-            onOpenCategory = { navigator.push(Route.Gallery.Grid(it)) },
+            onOpenAlbum = { navigator.push(Route.Gallery.Grid(it)) },
         )
-        is Route.Gallery.Grid -> SoundGridScreen(categoryId = route.categoryId, onHome = onHome)
+        is Route.Gallery.Grid -> PhotoGridScreen(categoryId = route.categoryId, onBack = onBack, onHome = onHome)
+        Route.YouTube -> YouTubeScreen(onBack = onBack, onHome = onHome)
         is Route.Calls.Contacts -> CallContactsScreen(
             app = route.app,
-            onBack = { navigator.pop() },
+            onBack = onBack,
             onHome = onHome,
             onCall = { navigator.push(Route.Calls.Active(it.value, route.app)) },
             onOpenKeypad = { navigator.push(Route.Calls.Keypad) },
         )
         Route.Calls.Keypad -> KeypadScreen(
-            onBack = { navigator.pop() },
+            onBack = onBack,
             onHome = onHome,
             onCall = { navigator.push(Route.Calls.Active(it.value, CallApp.Phone)) },
         )
@@ -103,13 +107,14 @@ private fun RouteContent(route: Route, navigator: Navigator) {
             contactId = route.contactId,
             app = route.app,
             onHome = onHome,
-            onFinished = { navigator.pop() },
+            onFinished = onBack,
         )
         Route.Games.Picker -> GamePickerScreen(
+            onBack = onBack,
             onHome = onHome,
             onOpenShapeMatch = { navigator.push(Route.Games.ShapeMatch) },
         )
-        Route.Games.ShapeMatch -> ShapeMatchScreen(onHome = onHome)
-        else -> ComingSoonScreen(route, onHome = onHome)
+        Route.Games.ShapeMatch -> ShapeMatchScreen(onBack = onBack, onHome = onHome)
+        is Route.Parent -> ComingSoonScreen(onBack = onBack, onHome = onHome)
     }
 }

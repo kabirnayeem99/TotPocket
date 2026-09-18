@@ -17,12 +17,12 @@ class SoundGridViewModelTest : MainDispatcherTest() {
     private val player = FakeSoundPlayer()
     private val animals = GalleryCatalog.Animals.items
 
-    private fun viewModel(category: GalleryCategory = GalleryCatalog.Animals) = SoundGridViewModel(category, player)
+    private fun viewModel(category: GalleryCategory = GalleryCatalog.Animals, pageSize: Int = SoundGridViewModel.DEFAULT_PAGE_SIZE) =
+        SoundGridViewModel(category, player, pageSize)
 
     @Test
     fun `nothing plays until the child taps`() = runTest(dispatcher) {
-        val viewModel = viewModel()
-        viewModel.state.test {
+        viewModel().state.test {
             awaitItem()
             advanceTimeBy(60_000)
             expectNoEvents()
@@ -31,46 +31,38 @@ class SoundGridViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `first page shows six tiles and a second page exists`() = runTest(dispatcher) {
-        viewModel().state.test {
-            val state = awaitItem()
-            assertEquals(animals.take(6), state.tiles)
-            assertEquals(2, state.pageCount)
-            assertFalse(state.hasPrevious)
-            assertTrue(state.hasNext)
+    fun `every gallery album fits on one screen`() = runTest(dispatcher) {
+        GalleryCatalog.categories.forEach { category ->
+            viewModel(category).state.test {
+                val state = awaitItem()
+                assertEquals(category.items, state.tiles)
+                assertEquals(1, state.pageCount)
+                assertNull(state.openItem)
+            }
         }
     }
 
     @Test
-    fun `tapping a tile plays its sound and highlights it until the clip ends`() = runTest(dispatcher) {
+    fun `tapping a picture opens it and plays its sound until the clip ends`() = runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.state.test {
             awaitItem()
             viewModel.onAction(SoundGridAction.TileTapped(animals[0].id))
-            assertEquals(animals[0].id, awaitItem().playingId)
+            runCurrent()
+            val open = expectMostRecentItem()
+            assertEquals(animals[0], open.openItem)
+            assertEquals(animals[0].id, open.playingId)
             assertEquals(listOf(animals[0].sound), player.played)
 
             player.finishClip()
-            assertNull(awaitItem().playingId)
+            val finished = awaitItem()
+            assertNull(finished.playingId)
+            assertEquals(animals[0], finished.openItem, "the picture stays open after its sound")
         }
     }
 
     @Test
-    fun `a second tap replaces the first sound rather than overlapping it`() = runTest(dispatcher) {
-        val viewModel = viewModel()
-        viewModel.state.test {
-            awaitItem()
-            viewModel.onAction(SoundGridAction.TileTapped(animals[0].id))
-            awaitItem()
-            viewModel.onAction(SoundGridAction.TileTapped(animals[1].id))
-            assertEquals(animals[1].id, awaitItem().playingId)
-        }
-        assertEquals(listOf(animals[0].sound, animals[1].sound), player.played)
-        assertEquals(animals[1].sound, player.playing.value)
-    }
-
-    @Test
-    fun `tapping the same tile again restarts it`() = runTest(dispatcher) {
+    fun `tapping an open picture plays it again`() = runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.onAction(SoundGridAction.TileTapped(animals[2].id))
         viewModel.onAction(SoundGridAction.TileTapped(animals[2].id))
@@ -78,52 +70,60 @@ class SoundGridViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `turning the page silences the current sound and shows the next tiles`() = runTest(dispatcher) {
+    fun `a second picture replaces the first sound rather than overlapping it`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onAction(SoundGridAction.TileTapped(animals[0].id))
+        viewModel.onAction(SoundGridAction.TileTapped(animals[1].id))
+        assertEquals(listOf(animals[0].sound, animals[1].sound), player.played)
+        assertEquals(animals[1].sound, player.playing.value)
+    }
+
+    @Test
+    fun `closing a picture silences it and returns to the grid`() = runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.state.test {
             awaitItem()
             viewModel.onAction(SoundGridAction.TileTapped(animals[0].id))
-            awaitItem()
-            viewModel.onAction(SoundGridAction.NextPage)
+            runCurrent()
+            assertEquals(animals[0], expectMostRecentItem().openItem)
+            viewModel.onAction(SoundGridAction.CloseItem)
             runCurrent()
             val state = expectMostRecentItem()
-            assertEquals(1, state.page)
-            assertEquals(animals.drop(6), state.tiles)
-            assertTrue(state.hasPrevious)
-            assertFalse(state.hasNext)
+            assertNull(state.openItem)
             assertNull(state.playingId)
         }
         assertEquals(1, player.stopCount)
     }
 
     @Test
-    fun `paging past either end does nothing`() = runTest(dispatcher) {
-        val viewModel = viewModel()
+    fun `closing when nothing is open does nothing`() = runTest(dispatcher) {
+        viewModel().onAction(SoundGridAction.CloseItem)
+        assertTrue(player.events.isEmpty())
+    }
+
+    @Test
+    fun `smaller pages turn and silence the current sound`() = runTest(dispatcher) {
+        val viewModel = viewModel(pageSize = 8)
         viewModel.state.test {
-            awaitItem()
-            viewModel.onAction(SoundGridAction.PreviousPage)
-            viewModel.onAction(SoundGridAction.NextPage)
+            val first = awaitItem()
+            assertEquals(animals.take(8), first.tiles)
+            assertTrue(first.hasNext)
+
+            viewModel.onAction(SoundGridAction.TileTapped(animals[0].id))
             viewModel.onAction(SoundGridAction.NextPage)
             runCurrent()
-            assertEquals(1, expectMostRecentItem().page)
+            val second = expectMostRecentItem()
+            assertEquals(animals.drop(8), second.tiles)
+            assertFalse(second.hasNext)
+            assertNull(second.openItem)
         }
         assertEquals(1, player.stopCount)
     }
 
     @Test
-    fun `a tile from another page cannot be played`() = runTest(dispatcher) {
-        viewModel().onAction(SoundGridAction.TileTapped(animals.last().id))
+    fun `a picture from another page cannot be opened`() = runTest(dispatcher) {
+        viewModel(pageSize = 8).onAction(SoundGridAction.TileTapped(animals.last().id))
         assertTrue(player.played.isEmpty())
-    }
-
-    @Test
-    fun `single-page categories have no arrows`() = runTest(dispatcher) {
-        viewModel(GalleryCatalog.Flowers).state.test {
-            val state = awaitItem()
-            assertEquals(1, state.pageCount)
-            assertFalse(state.hasNext)
-            assertFalse(state.hasPrevious)
-        }
     }
 
     @Test
@@ -132,7 +132,7 @@ class SoundGridViewModelTest : MainDispatcherTest() {
             category.items.forEach { item ->
                 assertEquals("files/gallery/${category.id}/${item.id.value}.ogg", item.sound.path)
             }
-            assertTrue(category.items.size in 6..24, "${category.id} should fill 1–4 pages")
+            assertTrue(category.items.size in 6..SoundGridViewModel.DEFAULT_PAGE_SIZE, "${category.id} should fit one screen")
         }
     }
 }
