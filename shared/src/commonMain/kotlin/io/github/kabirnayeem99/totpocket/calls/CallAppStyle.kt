@@ -20,7 +20,9 @@ data class CallAppStyle(
     val isVideo: Boolean,
 )
 
-private val WhatsAppTeal = Color(0xFF008069)
+/** Colours from the WhatsApp clone's design system (GREEN500 bar, GREEN450 icons). */
+val WhatsAppBar = Color(0xFF19887A)
+val WhatsAppIconGreen = Color(0xFF1AA05B)
 
 fun CallApp.style(): CallAppStyle = when (this) {
     CallApp.Phone -> CallAppStyle(
@@ -34,12 +36,12 @@ fun CallApp.style(): CallAppStyle = when (this) {
     )
     CallApp.WhatsApp -> CallAppStyle(
         listTitle = "WhatsApp",
-        listChrome = AppChromeStyle(Color.White, WhatsAppTeal, Color.White, Color(0xFF1B1B1B)),
-        accent = WhatsAppTeal,
-        rowSubtitle = "Voice call",
+        listChrome = AppChromeStyle(Color.White, WhatsAppBar, Color.White, Color(0xFF1B1B1B)),
+        accent = WhatsAppIconGreen,
+        rowSubtitle = "Video call",
         callBackground = Brush.verticalGradient(listOf(Color(0xFF1F2C33), Color(0xFF0B141A))),
-        callHeader = "WhatsApp voice call",
-        isVideo = false,
+        callHeader = "WhatsApp video call",
+        isVideo = true,
     )
     CallApp.Imo -> CallAppStyle(
         listTitle = "imo",

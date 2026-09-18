@@ -36,7 +36,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kabirnayeem99.totpocket.LocalAppContainer
 import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyles
 import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
+import io.github.kabirnayeem99.totpocket.ui.components.AppTopBar
 import io.github.kabirnayeem99.totpocket.ui.components.CallControl
 import io.github.kabirnayeem99.totpocket.ui.components.GestureBar
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
@@ -80,6 +83,10 @@ fun CallContactsScreen(
     modifier: Modifier = Modifier,
 ) {
     val style = app.style()
+    if (app == CallApp.WhatsApp) {
+        WhatsAppCallsList(style, onBack, onHome, onCall, modifier)
+        return
+    }
     AppScaffold(title = style.listTitle, style = style.listChrome, onBack = onBack, onHome = onHome, modifier = modifier) {
         Column(Modifier.fillMaxSize().padding(top = 8.dp)) {
             CallContacts.favourites.forEach { contact ->
@@ -102,8 +109,59 @@ fun CallContactsScreen(
     }
 }
 
+/**
+ * WhatsApp's Calls tab, after the WhatsApp clone's design: teal bar with the title, search and
+ * menu, the CHATS · STATUS · CALLS tabs with CALLS selected, then one row per person with a
+ * 56dp picture and a green video-call icon.
+ */
 @Composable
-private fun ContactRow(contact: Contact, style: CallAppStyle, isVideo: Boolean, onClick: () -> Unit) {
+private fun WhatsAppCallsList(
+    style: CallAppStyle,
+    onBack: () -> Unit,
+    onHome: () -> Unit,
+    onCall: (ContactId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxSize().background(Color.White)) {
+        Column(Modifier.fillMaxWidth().background(WhatsAppBar)) {
+            AppTopBar(title = "WhatsApp", style = style.listChrome, onBack = onBack) {
+                Icon(TotPocketIcons.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+                Spacer(Modifier.width(18.dp))
+                Icon(TotPocketIcons.MoreVert, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+            }
+            Row(Modifier.fillMaxWidth()) {
+                listOf("CHATS", "STATUS", "CALLS").forEach { tab ->
+                    val selected = tab == "CALLS"
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            tab,
+                            color = if (selected) Color.White else Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 12.dp),
+                        )
+                        Box(Modifier.fillMaxWidth().height(2.5.dp).background(if (selected) Color(0xFFE0E0E0) else Color.Transparent))
+                    }
+                }
+            }
+        }
+        Column(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) {
+            CallContacts.favourites.forEach { contact ->
+                ContactRow(contact, style, isVideo = true, onClick = { onCall(contact.id) }, subtitle = "↗ Today, 10:1${contact.name.length % 10}")
+            }
+        }
+        GestureBar(color = style.listChrome.gestureBar, onHome = onHome)
+    }
+}
+
+@Composable
+private fun ContactRow(
+    contact: Contact,
+    style: CallAppStyle,
+    isVideo: Boolean,
+    onClick: () -> Unit,
+    subtitle: String = style.rowSubtitle,
+) {
     ToddlerButton(
         onClick = onClick,
         contentDescription = "Call ${contact.name}",
@@ -120,7 +178,7 @@ private fun ContactRow(contact: Contact, style: CallAppStyle, isVideo: Boolean, 
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(contact.name, color = DarkText, fontSize = 19.sp, fontWeight = FontWeight.Medium)
-                Text(style.rowSubtitle, color = GreyText, fontSize = 14.sp)
+                Text(subtitle, color = GreyText, fontSize = 14.sp)
             }
             Icon(
                 imageVector = if (isVideo) TotPocketIcons.Video else TotPocketIcons.Phone,
@@ -285,9 +343,12 @@ fun CallContent(
     modifier: Modifier = Modifier,
 ) {
     val style = app.style()
+    if (style.isVideo) {
+        VideoCallContent(state, app, style, onAction, onHome, modifier)
+        return
+    }
     Column(modifier.fillMaxSize().background(style.callBackground)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (style.isVideo) VideoFeed(state, Modifier.fillMaxSize())
             Column(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -306,10 +367,8 @@ fun CallContent(
                 Text(state.contact.name, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Normal)
                 Spacer(Modifier.height(8.dp))
                 CallStatus(state.phase)
-                if (!style.isVideo) {
-                    Spacer(Modifier.height(40.dp))
-                    CallerAvatar(state)
-                }
+                Spacer(Modifier.height(40.dp))
+                CallerAvatar(state)
                 Spacer(Modifier.weight(1f))
                 CallControls(state.phase, onAction)
                 Spacer(Modifier.height(24.dp))
@@ -374,9 +433,115 @@ private fun CallerAvatar(state: CallUiState) {
     )
 }
 
-/** imo: the caller fills the screen like a video, with the child's own small self-view. */
+/**
+ * A video call as WhatsApp and imo show it. While it rings, the child's own front camera fills
+ * the screen; once the other person picks up they fill the screen and the child moves to a small
+ * self-view window. The camera button hides and shows the self-view.
+ */
 @Composable
-private fun VideoFeed(state: CallUiState, modifier: Modifier = Modifier) {
+private fun VideoCallContent(
+    state: CallUiState,
+    app: CallApp,
+    style: CallAppStyle,
+    onAction: (CallAction) -> Unit,
+    onHome: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var cameraOn by remember { mutableStateOf(true) }
+    var muted by remember { mutableStateOf(false) }
+    val selfFallback: @Composable () -> Unit = {
+        Box(Modifier.fillMaxSize().background(Color(0xFF263238)), contentAlignment = Alignment.Center) {
+            Text("🙂", fontSize = 48.sp)
+        }
+    }
+    Column(modifier.fillMaxSize().background(Color.Black)) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                state.phase == CallPhase.Calling && cameraOn -> SelfCamera(Modifier.fillMaxSize(), selfFallback)
+                state.phase == CallPhase.Calling -> Box(Modifier.fillMaxSize().background(style.callBackground))
+                else -> CallerVideo(state, style, Modifier.fillMaxSize())
+            }
+            // Header over the picture, like the real apps.
+            Column(
+                Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)))
+                    .padding(top = 36.dp, bottom = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                style.callHeader?.let { header ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (app == CallApp.WhatsApp) {
+                            Icon(TotPocketIcons.Lock, contentDescription = null, tint = LightText, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(if (app == CallApp.WhatsApp) "End-to-end encrypted" else header, color = LightText, fontSize = 13.sp)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+                Text(state.contact.name, color = Color.White, fontSize = 28.sp)
+                Spacer(Modifier.height(4.dp))
+                CallStatus(state.phase)
+            }
+            if (state.phase != CallPhase.Calling && cameraOn) {
+                SelfCamera(
+                    Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp)
+                        .size(width = 110.dp, height = 160.dp).clip(RoundedCornerShape(14.dp)),
+                    selfFallback,
+                )
+            }
+        }
+        // Controls on a dark panel (WhatsApp) or a coloured strip (imo).
+        Row(
+            Modifier.fillMaxWidth()
+                .background(
+                    if (app == CallApp.WhatsApp) Color(0xFF1F2C33) else BrandColors.Imo,
+                    RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                )
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (state.phase == CallPhase.Ended) {
+                Spacer(Modifier.size(TotPocketDimens.MinTouchTarget))
+            } else {
+                RoundControl(TotPocketIcons.Video, "Camera", active = !cameraOn) { cameraOn = !cameraOn }
+                RoundControl(TotPocketIcons.Mic, "Mute", active = muted) { muted = !muted }
+                ToddlerButton(
+                    onClick = { onAction(CallAction.HangUp) },
+                    contentDescription = "End call",
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
+                    color = HangUpRed,
+                    outline = Color.Transparent,
+                    outlineWidth = 1.dp,
+                    minSize = 72.dp,
+                ) {
+                    Icon(TotPocketIcons.HangUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(38.dp))
+                }
+            }
+        }
+        GestureBar(color = Color.White, onHome = onHome, modifier = Modifier.background(if (app == CallApp.WhatsApp) Color(0xFF1F2C33) else BrandColors.Imo))
+    }
+}
+
+@Composable
+private fun RoundControl(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
+    ToddlerButton(
+        onClick = onClick,
+        contentDescription = label,
+        modifier = Modifier.size(72.dp),
+        shape = CircleShape,
+        color = if (active) Color.White else Color.White.copy(alpha = 0.18f),
+        outline = Color.Transparent,
+        outlineWidth = 1.dp,
+        minSize = 64.dp,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (active) DarkText else Color.White, modifier = Modifier.size(30.dp))
+    }
+}
+
+/** The other person "on camera": their picture large on a soft background, moving gently, talking when they talk. */
+@Composable
+private fun CallerVideo(state: CallUiState, style: CallAppStyle, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "video")
     val sway by transition.animateFloat(
         initialValue = -1f,
@@ -385,26 +550,18 @@ private fun VideoFeed(state: CallUiState, modifier: Modifier = Modifier) {
         label = "sway",
     )
     val talking = state.isTalking
-    Box(modifier) {
+    Box(modifier.background(Brush.verticalGradient(listOf(state.contact.avatarColor(), Color(0xFF2B2F3A)))), contentAlignment = Alignment.Center) {
         Text(
             text = if (state.phase == CallPhase.Ended) "👋" else state.contact.emoji,
-            fontSize = 200.sp,
-            modifier = Modifier.align(Alignment.Center).graphicsLayer {
-                translationX = sway * 12.dp.toPx()
+            fontSize = 220.sp,
+            modifier = Modifier.graphicsLayer {
+                translationX = sway * 10.dp.toPx()
                 rotationZ = if (talking) sway * 3f else 0f
+                val breathe = if (talking) 1f + sway * 0.02f else 1f
+                scaleX = breathe
+                scaleY = breathe
             },
         )
-        Box(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 150.dp, end = 20.dp)
-                .size(width = 96.dp, height = 132.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF263238)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("🙂", fontSize = 48.sp)
-        }
     }
 }
 

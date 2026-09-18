@@ -26,7 +26,8 @@ class MainActivity : ComponentActivity() {
     private val container: AppContainer
         get() = app.container
 
-    // Read-only access to the phone's photos and videos, for Photos and YouTube.
+    // Read-only access to the phone's photos and videos (Photos, YouTube), and the front camera
+    // for the self-view in pretend video calls.
     private val mediaPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         container.mediaLibrary.refresh()
     }
@@ -94,9 +95,9 @@ class MainActivity : ComponentActivity() {
 
     private fun requestMediaAccess() {
         val wanted = if (Build.VERSION.SDK_INT >= 33) {
-            listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
+            listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.CAMERA)
         } else {
-            listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+            listOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA)
         }
         val missing = wanted.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
         if (missing.isNotEmpty()) mediaPermissions.launch(missing.toTypedArray())
