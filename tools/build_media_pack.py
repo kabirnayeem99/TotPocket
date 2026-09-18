@@ -10,12 +10,16 @@ YouTube. Everything is zipped into the app's compose resources:
         images/<category>/<id>.webp   (long edge 1080px)
         thumbs/<category>/<id>.webp   (long edge 360px)
 
-Usage:  python3 tools/build_media_pack.py [SOURCE_DIR]      (default: ~/Downloads; needs Pillow)
+Usage:  python3 tools/build_media_pack.py [SOURCE_DIR]      (default: tools/photos; needs Pillow)
 
 Photos come from Unsplash (Unsplash License: free to use, no permission needed) and from Wikimedia
 Commons (approved entries in tools/commons_photos.json, fetched by tools/fetch_commons_photos.py;
 mostly CC BY / CC BY-SA). Each photo's author, licence and page are recorded in the catalog, and
 the app shows the credit under the photo.
+
+The Unsplash photos live in tools/photos (Git LFS) as WebP, long edge 2560px at quality 90 — over
+twice the size the app shows, so nothing visible is lost. PHOTOS keeps the original Unsplash file
+names because the credit is read from them; the builder looks for the same name ending in .webp.
 """
 
 import io
@@ -29,6 +33,7 @@ from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "shared/src/commonMain/composeResources/files/media/pack.zip"
+PHOTOS_DIR = ROOT / "tools/photos"
 PACK_VERSION = 1
 FULL_EDGE, FULL_QUALITY = 1080, 68
 THUMB_EDGE, THUMB_QUALITY = 360, 60
@@ -421,7 +426,7 @@ def webp(image: Image.Image, edge: int, quality: int) -> tuple[bytes, int, int]:
 
 
 def main() -> None:
-    source = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Downloads"
+    source = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else PHOTOS_DIR
     photos = {name: (*info, credit(name)) for name, info in PHOTOS.items() if name not in MODESTY_EXCLUDED}
     photos.update(commons_photos())
     counters: dict[str, int] = defaultdict(int)
@@ -431,7 +436,7 @@ def main() -> None:
     with zipfile.ZipFile(OUT, "w", compression=zipfile.ZIP_STORED) as pack:
         for name in sorted(photos, key=lambda n: (list(CATEGORIES).index(photos[n][0]), photos[n][1], n)):
             category, subject, title, photo_credit = photos[name]
-            path = Path(name) if Path(name).is_absolute() else source / name
+            path = Path(name) if Path(name).is_absolute() else source / Path(name).with_suffix(".webp").name
             if not path.exists():
                 print(f"missing, skipped: {name}")
                 continue
