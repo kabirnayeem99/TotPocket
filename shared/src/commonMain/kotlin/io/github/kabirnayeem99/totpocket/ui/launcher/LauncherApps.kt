@@ -1,6 +1,7 @@
 package io.github.kabirnayeem99.totpocket.ui.launcher
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -48,7 +49,8 @@ object BrandColors {
     val Gallery = Color(0xFF4285F4)
     /** HyperOS Phone green. */
     val Phone = Color(0xFF34C759)
-    val Games = Color(0xFF7C4DFF)
+    /** Google Play Games green. */
+    val Games = Color(0xFF01875F)
 }
 
 object LauncherGlyphs {
@@ -147,23 +149,26 @@ object LauncherGlyphs {
         )
     }
 
-    /** A solid gamepad with a d-pad and two buttons cut out in the icon colour. */
+    /** The Google Play Games gamepad, solid white with its buttons and d-pad cut out. */
     val Games: ImageVector by lazy {
-        val cutout = BrandColors.Games
         icon(
             "Games",
-            scale = 1f,
+            scale = 1.05f,
             Layer(
-                "M14,15h20a10,10,0,0,1,9.6,7.2l2.3,8.4a5.5,5.5,0,0,1,-9.3,5.3L32,31H16l-4.6,4.9a5.5,5.5,0,0,1,-9.3,-5.3" +
-                    "l2.3,-8.4A10,10,0,0,1,14,15Z",
+                "M41.59,18h0a7.28,7.28,0,0,0-12.24-4.34H18.67a7.29,7.29,0,0,0-5-2h0A7.3,7.3,0,0,0,6.42,18h0L4.51,33.24" +
+                    "c-.32,3.89,6.53,4,7.81,1.32l4.17-8.92h15l4.17,8.92c1.28,2.66,8.13,2.57,7.81-1.32Z" +
+                    "m-4.68-.47h0a1.42,1.42,0,1,1-1.41,1.42h0A1.42,1.42,0,0,1,36.91,17.49Z" +
+                    "m-7.2,1.42a1.42,1.42,0,0,1,1.42-1.42h0a1.42,1.42,0,1,1-1.42,1.42Z" +
+                    "M12.23,22.05V20.33H10.51a.87.87,0,0,1-.87-.87V18.37a.87.87,0,0,1,.87-.88h1.72V15.78a.87.87,0,0,1,.87-.87" +
+                    "h1.09a.87.87,0,0,1,.88.87v1.71h1.71a.87.87,0,0,1,.87.88v1.09a.87.87,0,0,1-.87.87H15.07v1.72a.87.87,0,0,1" +
+                    "-.88.87H13.1a.86.86,0,0,1-.23-.05l-.5-.38A.85.85,0,0,1,12.23,22.05Z" +
+                    "m23.21-.24h0A1.42,1.42,0,1,1,34,20.39h0A1.42,1.42,0,0,1,35.44,21.81Z" +
+                    "M34,14.6A1.43,1.43,0,0,1,35.44,16h0A1.42,1.42,0,1,1,34,14.6Z",
                 fill = Color.White,
                 stroke = Color.White,
-                width = 1f,
+                width = 0.6f,
+                evenOdd = true,
             ),
-            Layer("M10.5,21.8h7v3.4h-7Z", fill = cutout),
-            Layer("M12.3,20h3.4v7h-3.4Z", fill = cutout),
-            Layer("M31.2,21a1.9,1.9,0,1,0,3.8,0a1.9,1.9,0,1,0,-3.8,0Z", fill = cutout),
-            Layer("M34.8,25.4a1.9,1.9,0,1,0,3.8,0a1.9,1.9,0,1,0,-3.8,0Z", fill = cutout),
         )
     }
 
@@ -174,6 +179,8 @@ object LauncherGlyphs {
         val stroke: Color? = null,
         val width: Float = LETTER_STROKE,
         val scale: Float = 1f,
+        /** Fill inner sub-paths as holes (buttons cut out of a body). */
+        val evenOdd: Boolean = false,
     )
 
     private fun icon(name: String, scale: Float, vararg layers: Layer): ImageVector =
@@ -189,6 +196,7 @@ object LauncherGlyphs {
                     group(scaleX = layer.scale, scaleY = layer.scale, pivotX = 24f, pivotY = 24f) {
                         addPath(
                             pathData = addPathNodes(layer.pathData),
+                            pathFillType = if (layer.evenOdd) PathFillType.EvenOdd else PathFillType.NonZero,
                             fill = layer.fill?.let(::SolidColor),
                             stroke = layer.stroke?.let(::SolidColor),
                             strokeLineWidth = if (layer.stroke != null) layer.width else 0f,
