@@ -106,6 +106,28 @@ SUBJECTS = {
     "eye": ("Eyes", None),
     "water": ("Water", None),
     "toothbrush": ("Brush your teeth", None),
+    "cup": ("Cups", None),
+    "spoon": ("Spoons", None),
+    "plate": ("Plates", None),
+    "bowl": ("Bowls", None),
+    "ball": ("Balls", None),
+    "shoes": ("Shoes", None),
+    "chair": ("Chairs", None),
+    "clock": ("Tick tock clocks", None),
+    "umbrella": ("Umbrellas", None),
+    "book": ("Books", None),
+    "teddy": ("Teddy bears", None),
+    "toycar": ("Toy cars", None),
+    "bucket": ("Buckets", None),
+    "soap": ("Soap", None),
+    "comb": ("Combs", None),
+    "key": ("Keys", None),
+    "lamp": ("Lamps", None),
+    "pencil": ("Colour pencils", None),
+    "balloon": ("Balloons", None),
+    "hat": ("Hats", None),
+    "kettle": ("Kettles", None),
+    "door": ("Doors", None),
     "airplane": ("Aeroplanes", None),
     "helicopter": ("Helicopters", None),
     "firetruck": ("Fire engines", None),
@@ -334,6 +356,21 @@ PHOTOS = {
 }
 
 
+# Left out on review: TotPocket shows no adult women, and no man uncovered between navel and knee
+# (e.g. a lungi hitched above the knee). Hands of unknown gender and crowded streets are left out
+# too, to be safe.
+MODESTY_EXCLUDED = {
+    "engin-akyurt-PCpoG06fcUI-unsplash.jpg",  # woman holding a glass of water
+    "johaer-SWclRtrD7sc-unsplash.jpg",  # rickshaw puller, legs uncovered
+    "lei-hwang-ssGrak-xfeM-unsplash.jpg",  # horse cart passengers
+    "bornil-amin-ppE54bv7bFk-unsplash.jpg",  # crowded street
+    "asiqur-rahman-x_1IxCg0siU-unsplash.jpg",  # fisherman, lungi above the knee
+    "fahaduzzaman-fahad-YOFkNELtNDo-unsplash.jpg",  # boatman, lungi above the knee
+    "kabiur-rahman-riyad-BkcXo0cUG4c-unsplash.jpg",  # fishermen in the water
+    "lisa-alam-DE51nul8T5Q-unsplash.jpg",  # rickshaw puller sitting
+}
+
+
 def credit(file_name: str) -> dict:
     stem = file_name.rsplit(".", 1)[0]
     if not stem.endswith("-unsplash"):
@@ -378,7 +415,7 @@ def webp(image: Image.Image, edge: int, quality: int) -> tuple[bytes, int, int]:
 
 def main() -> None:
     source = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Downloads"
-    photos = {name: (*info, credit(name)) for name, info in PHOTOS.items()}
+    photos = {name: (*info, credit(name)) for name, info in PHOTOS.items() if name not in MODESTY_EXCLUDED}
     photos.update(commons_photos())
     counters: dict[str, int] = defaultdict(int)
     entries, videos = [], defaultdict(list)
