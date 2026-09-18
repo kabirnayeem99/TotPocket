@@ -140,6 +140,8 @@ SUBJECTS = {
     "table": ("Tables", None),
     "sofa": ("Sofas", None),
     "painting": ("Children's paintings", None),
+    "fan": ("Ceiling fans", None),
+    "watch": ("Watches", None),
     "airplane": ("Aeroplanes", None),
     "helicopter": ("Helicopters", None),
     "firetruck": ("Fire engines", None),
