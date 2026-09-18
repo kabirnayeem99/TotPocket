@@ -51,6 +51,11 @@ object TotPocketIcons {
         icon("Home", "M10,20v-6h4v6h5v-8h3L12,3 2,12h3v8z")
     }
 
+    /** Solid triangles read as "go this way" better than thin arrows for pre-readers. */
+    val ArrowRight: ImageVector by lazy { icon("ArrowRight", "M8,4.5v15l11.5,-7.5z") }
+
+    val ArrowLeft: ImageVector by lazy { icon("ArrowLeft", "M16,4.5v15L4.5,12z") }
+
     private fun icon(name: String, vararg paths: String): ImageVector =
         ImageVector.Builder(
             name = name,

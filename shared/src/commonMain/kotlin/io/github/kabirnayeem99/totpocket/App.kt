@@ -15,6 +15,8 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kabirnayeem99.totpocket.audio.Sounds
+import io.github.kabirnayeem99.totpocket.gallery.GalleryCategoriesScreen
+import io.github.kabirnayeem99.totpocket.gallery.SoundGridScreen
 import io.github.kabirnayeem99.totpocket.home.TotPocketHomeScreen
 import io.github.kabirnayeem99.totpocket.navigation.EntryViewModelStores
 import io.github.kabirnayeem99.totpocket.navigation.Navigator
@@ -74,6 +76,11 @@ private fun RouteContent(route: Route, navigator: Navigator) {
     val onHome = navigator::popToHome
     when (route) {
         Route.Home -> TotPocketHomeScreen(onOpen = navigator::push)
+        Route.Gallery.Categories -> GalleryCategoriesScreen(
+            onHome = onHome,
+            onOpenCategory = { navigator.push(Route.Gallery.Grid(it)) },
+        )
+        is Route.Gallery.Grid -> SoundGridScreen(categoryId = route.categoryId, onHome = onHome)
         else -> ComingSoonScreen(route, onHome = onHome)
     }
 }
