@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kabirnayeem99.totpocket.audio.Sounds
+import io.github.kabirnayeem99.totpocket.calls.CallApp
 import io.github.kabirnayeem99.totpocket.calls.CallContactsScreen
 import io.github.kabirnayeem99.totpocket.calls.CallScreen
 import io.github.kabirnayeem99.totpocket.calls.KeypadScreen
@@ -22,7 +23,7 @@ import io.github.kabirnayeem99.totpocket.gallery.GalleryCategoriesScreen
 import io.github.kabirnayeem99.totpocket.games.GamePickerScreen
 import io.github.kabirnayeem99.totpocket.games.ShapeMatchScreen
 import io.github.kabirnayeem99.totpocket.gallery.SoundGridScreen
-import io.github.kabirnayeem99.totpocket.home.TotPocketHomeScreen
+import io.github.kabirnayeem99.totpocket.home.LauncherHomeScreen
 import io.github.kabirnayeem99.totpocket.navigation.EntryViewModelStores
 import io.github.kabirnayeem99.totpocket.navigation.Navigator
 import io.github.kabirnayeem99.totpocket.navigation.Route
@@ -80,20 +81,21 @@ private fun TotPocketNavHost() {
 private fun RouteContent(route: Route, navigator: Navigator) {
     val onHome = navigator::popToHome
     when (route) {
-        Route.Home -> TotPocketHomeScreen(onOpen = navigator::push)
+        Route.Home -> LauncherHomeScreen(onOpen = navigator::push)
         Route.Gallery.Categories -> GalleryCategoriesScreen(
             onHome = onHome,
             onOpenCategory = { navigator.push(Route.Gallery.Grid(it)) },
         )
         is Route.Gallery.Grid -> SoundGridScreen(categoryId = route.categoryId, onHome = onHome)
-        Route.Calls.Contacts -> CallContactsScreen(
+        is Route.Calls.Contacts -> CallContactsScreen(
+            app = route.app,
             onHome = onHome,
-            onCall = { navigator.push(Route.Calls.Active(it.value)) },
+            onCall = { navigator.push(Route.Calls.Active(it.value, route.app)) },
             onOpenKeypad = { navigator.push(Route.Calls.Keypad) },
         )
         Route.Calls.Keypad -> KeypadScreen(
             onHome = onHome,
-            onCall = { navigator.push(Route.Calls.Active(it.value)) },
+            onCall = { navigator.push(Route.Calls.Active(it.value, CallApp.Phone)) },
         )
         is Route.Calls.Active -> CallScreen(
             contactId = route.contactId,

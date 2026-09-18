@@ -1,6 +1,7 @@
 package io.github.kabirnayeem99.totpocket.navigation
 
 import androidx.compose.runtime.saveable.SaverScope
+import io.github.kabirnayeem99.totpocket.calls.CallApp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,8 +38,8 @@ class NavigatorTest {
     @Test
     fun `pushing the current route again is ignored`() {
         val navigator = Navigator()
-        navigator.push(Route.Calls.Contacts)
-        navigator.push(Route.Calls.Contacts)
+        navigator.push(Route.Calls.Contacts(CallApp.Phone))
+        navigator.push(Route.Calls.Contacts(CallApp.Phone))
         assertEquals(2, navigator.backStack.size)
     }
 
@@ -47,13 +48,13 @@ class NavigatorTest {
         val navigator = Navigator()
         val removed = mutableListOf<Route>()
         navigator.onEntryRemoved = { removed += it.route }
-        navigator.push(Route.Calls.Contacts)
-        navigator.push(Route.Calls.Active("mum"))
+        navigator.push(Route.Calls.Contacts(CallApp.Phone))
+        navigator.push(Route.Calls.Active("mum", CallApp.Phone))
 
         navigator.popToHome()
 
         assertEquals(listOf(Route.Home), navigator.backStack.map { it.route })
-        assertEquals(listOf<Route>(Route.Calls.Active("mum"), Route.Calls.Contacts), removed)
+        assertEquals(listOf<Route>(Route.Calls.Active("mum", CallApp.Phone), Route.Calls.Contacts(CallApp.Phone)), removed)
     }
 
     @Test
@@ -77,7 +78,7 @@ class NavigatorTest {
     @Test
     fun `every route survives encoding`() {
         val routes = listOf(
-            Route.Home, Route.Calls.Contacts, Route.Calls.Keypad, Route.Calls.Active("grandma"),
+            Route.Home, Route.Calls.Contacts(CallApp.Phone), Route.Calls.Contacts(CallApp.Imo), Route.Calls.Keypad, Route.Calls.Active("grandma", CallApp.WhatsApp),
             Route.Gallery.Categories, Route.Gallery.Grid("flowers"), Route.Games.Picker,
             Route.Games.ShapeMatch, Route.Parent.Gate, Route.Parent.Settings,
         )

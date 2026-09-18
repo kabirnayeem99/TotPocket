@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A white phone outline with a heart on its screen, sized inside the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M46,31h16a7,7 0,0 1,7 7v32a7,7 0,0 1,-7 7h-16a7,7 0,0 1,-7 -7v-32a7,7 0,0 1,7 -7z"
+        android:strokeWidth="4.5"
+        android:strokeColor="#FFFFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M50.5,37h7"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M54,63.5C46.5,58 45,52.5 48.5,50C51,48.3 53.3,49.6 54,51.4C54.7,49.6 57,48.3 59.5,50C63,52.5 61.5,58 54,63.5Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

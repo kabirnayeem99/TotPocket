@@ -1,6 +1,7 @@
 package io.github.kabirnayeem99.totpocket.navigation
 
 import androidx.compose.runtime.Immutable
+import io.github.kabirnayeem99.totpocket.calls.CallApp
 
 /** Every place a child (or parent) can be. Encoded to a string so the back stack survives process death. */
 @Immutable
@@ -8,9 +9,9 @@ sealed interface Route {
     data object Home : Route
 
     sealed interface Calls : Route {
-        data object Contacts : Calls
+        data class Contacts(val app: CallApp) : Calls
         data object Keypad : Calls
-        data class Active(val contactId: String) : Calls
+        data class Active(val contactId: String, val app: CallApp) : Calls
     }
 
     sealed interface Gallery : Route {
@@ -31,9 +32,9 @@ sealed interface Route {
     companion object {
         fun encode(route: Route): String = when (route) {
             Home -> "home"
-            Calls.Contacts -> "calls"
+            is Calls.Contacts -> "calls/${route.app.id}"
             Calls.Keypad -> "calls/keypad"
-            is Calls.Active -> "calls/active/${route.contactId}"
+            is Calls.Active -> "calls/active/${route.app.id}/${route.contactId}"
             Gallery.Categories -> "gallery"
             is Gallery.Grid -> "gallery/grid/${route.categoryId}"
             Games.Picker -> "games"
@@ -43,9 +44,11 @@ sealed interface Route {
         }
 
         fun decode(value: String): Route = when {
-            value == "calls" -> Calls.Contacts
             value == "calls/keypad" -> Calls.Keypad
-            value.startsWith("calls/active/") -> Calls.Active(value.removePrefix("calls/active/"))
+            value.startsWith("calls/active/") -> value.removePrefix("calls/active/").split("/", limit = 2).let {
+                Calls.Active(contactId = it.getOrElse(1) { "" }, app = CallApp.fromId(it[0]))
+            }
+            value.startsWith("calls/") -> Calls.Contacts(CallApp.fromId(value.removePrefix("calls/")))
             value == "gallery" -> Gallery.Categories
             value.startsWith("gallery/grid/") -> Gallery.Grid(value.removePrefix("gallery/grid/"))
             value == "games" -> Games.Picker

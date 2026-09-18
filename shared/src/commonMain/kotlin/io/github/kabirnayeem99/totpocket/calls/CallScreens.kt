@@ -70,12 +70,15 @@ private sealed interface ContactsTile {
 /** Five familiar faces and a keypad tile, filling the screen. */
 @Composable
 fun CallContactsScreen(
+    app: CallApp,
     onHome: () -> Unit,
     onCall: (ContactId) -> Unit,
     onOpenKeypad: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tiles = remember { CallContacts.favourites.map(ContactsTile::Person) + ContactsTile.Keypad }
+    val tiles = remember(app) {
+        CallContacts.favourites.map(ContactsTile::Person) + listOfNotNull(ContactsTile.Keypad.takeIf { app.hasKeypad })
+    }
     ToddlerScaffold(onHome = onHome, modifier = modifier, background = TotPocketColors.RedTint) {
         ToddlerGrid(items = tiles, rows = 3) { tile, cellModifier ->
             when (tile) {
