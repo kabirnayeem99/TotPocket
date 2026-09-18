@@ -86,6 +86,24 @@ object TotPocketIcons {
         )
     }
 
+    val FullScreen: ImageVector by lazy {
+        icon("FullScreen", "M7,14H5v5h5v-2H7v-3zM5,10h2V7h3V5H5v5zM17,17h-3v2h5v-5h-2v3zM14,5v2h3v3h2V5h-5z")
+    }
+
+    val ExitFullScreen: ImageVector by lazy {
+        icon("ExitFullScreen", "M5,16h3v3h2v-5H5v2zM8,8H5v2h5V5H8v3zM14,19h2v-3h3v-2h-5v5zM16,8V5h-2v5h5V8h-3z")
+    }
+
+    val Home: ImageVector by lazy { icon("Home", "M10,20v-6h4v6h5v-8h3L12,3 2,12h3v8z") }
+
+    /** A play button in a screen — YouTube Shorts' tab. */
+    val Shorts: ImageVector by lazy {
+        icon(
+            "Shorts",
+            "M20,4H4C2.9,4 2,4.9 2,6v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6C22,4.9 21.1,4 20,4zM9.5,16.5v-9l7,4.5L9.5,16.5z",
+        )
+    }
+
     /** 3×3 dots plus a centred bottom dot, like a phone keypad. */
     val Keypad: ImageVector by lazy {
         val dots = buildList {

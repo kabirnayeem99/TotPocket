@@ -5,6 +5,14 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -69,23 +78,237 @@ fun YouTubeScreen(onBack: () -> Unit, onHome: () -> Unit) {
     YouTubeContent(state, viewModel::onAction, onBack, onHome)
 }
 
-/** YouTube's home feed and watch page. Only watching — no share, download or comments. */
+/**
+ * YouTube's Home feed, Shorts, the watch page, full screen and Shorts reels. Only watching — no
+ * share, download or comments.
+ */
 @Composable
 fun YouTubeContent(state: YouTubeUiState, onAction: (YouTubeAction) -> Unit, onBack: () -> Unit, onHome: () -> Unit) {
     val player = state.player
-    Column(Modifier.fillMaxSize().background(Color.White)) {
-        if (player == null) {
-            YouTubeTopBar(onBack)
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(bottom = 16.dp)) {
-                items(state.videos, key = { it.id }) { video ->
-                    FeedCard(video, onClick = { onAction(YouTubeAction.Open(video)) })
+    if (player != null) PlatformBackHandler(enabled = true) { onAction(YouTubeAction.Close) }
+    when (player?.mode) {
+        PlayerMode.FullScreen -> FullScreenPlayer(player, onAction, onHome)
+        PlayerMode.Reels -> ReelsPager(state, player, onAction, onHome)
+        else -> Column(Modifier.fillMaxSize().background(Color.White)) {
+            if (player == null) {
+                YouTubeTopBar(onBack)
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    when (state.tab) {
+                        YouTubeTab.Home -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+                            items(state.videos, key = { it.id }) { video ->
+                                FeedCard(video, onClick = { onAction(YouTubeAction.Open(video)) })
+                            }
+                        }
+                        YouTubeTab.Shorts -> ShortsGrid(state.videos, onOpen = { onAction(YouTubeAction.OpenReels(it)) })
+                    }
+                }
+                BottomTabs(state.tab, onSelect = { onAction(YouTubeAction.SelectTab(it)) })
+            } else {
+                WatchPage(player, state.upNext, onAction, Modifier.weight(1f))
+            }
+            GestureBar(color = AppChromeStyles.System.gestureBar, onHome = onHome)
+        }
+    }
+}
+
+/** YouTube's bottom navigation: Home and Shorts. */
+@Composable
+private fun BottomTabs(selected: YouTubeTab, onSelect: (YouTubeTab) -> Unit) {
+    Row(Modifier.fillMaxWidth().background(Color.White), horizontalArrangement = Arrangement.SpaceEvenly) {
+        listOf(YouTubeTab.Home to TotPocketIcons.Home, YouTubeTab.Shorts to TotPocketIcons.Shorts).forEach { (tab, icon) ->
+            ToddlerButton(
+                onClick = { onSelect(tab) },
+                contentDescription = tab.name,
+                modifier = Modifier.width(120.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Transparent,
+                outline = Color.Transparent,
+                outlineWidth = 1.dp,
+                pressedScale = 0.95f,
+                minSize = 56.dp,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 6.dp)) {
+                    Icon(icon, contentDescription = null, tint = DarkText, modifier = Modifier.size(if (tab == selected) 28.dp else 24.dp))
+                    Text(
+                        tab.name,
+                        color = DarkText,
+                        fontSize = 11.sp,
+                        fontWeight = if (tab == selected) FontWeight.Bold else FontWeight.Normal,
+                    )
                 }
             }
-        } else {
-            PlatformBackHandler(enabled = true) { onAction(YouTubeAction.Close) }
-            WatchPage(player, state.upNext, onAction, Modifier.weight(1f))
         }
-        GestureBar(color = AppChromeStyles.System.gestureBar, onHome = onHome)
+    }
+}
+
+/** Shorts: tall thumbnails, two per row, each opening the full-screen reels. */
+@Composable
+private fun ShortsGrid(videos: List<MediaVideo>, onOpen: (MediaVideo) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        gridItems(videos, key = { "short-${it.id}" }) { video ->
+            ToddlerButton(
+                onClick = { onOpen(video) },
+                contentDescription = video.title,
+                modifier = Modifier.aspectRatio(9f / 16f),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Black,
+                outline = Color.Transparent,
+                outlineWidth = 1.dp,
+                playTapSound = false,
+                pressedScale = 0.97f,
+                minSize = 80.dp,
+            ) {
+                MediaImage(video.thumb, maxPx = 540, modifier = Modifier.fillMaxSize())
+                Text(
+                    video.title,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
+                        .padding(10.dp),
+                )
+            }
+        }
+    }
+}
+
+/** The video alone, filling the screen. Tap it to show or hide the exit button. */
+@Composable
+private fun FullScreenPlayer(player: PlayerState, onAction: (YouTubeAction) -> Unit, onHome: () -> Unit) {
+    var controls by remember { mutableStateOf(true) }
+    Column(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(
+            Modifier.weight(1f).fillMaxWidth().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) { controls = !controls },
+        ) {
+            PlayerSurface(player, onAction, ContentScale.Fit, Modifier.fillMaxSize())
+            if (controls) {
+                CornerButton(
+                    TotPocketIcons.ExitFullScreen,
+                    "Exit full screen",
+                    Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                ) { onAction(YouTubeAction.ExitFullScreen) }
+            }
+        }
+        GestureBar(color = Color.White, onHome = onHome)
+    }
+}
+
+/**
+ * Shorts reels: one full-screen video per page, swiped up and down. The page on screen plays;
+ * when it ends the next one slides in and starts, like the real app.
+ */
+@Composable
+private fun ReelsPager(state: YouTubeUiState, player: PlayerState, onAction: (YouTubeAction) -> Unit, onHome: () -> Unit) {
+    val videos = state.videos
+    if (videos.isEmpty()) return
+    val pager = rememberPagerState(initialPage = state.reelIndex) { videos.size }
+    LaunchedEffect(pager.settledPage) { onAction(YouTubeAction.ReelShown(videos[pager.settledPage])) }
+    // Follow the ViewModel when a reel ends and the next one starts on its own.
+    LaunchedEffect(state.reelIndex) {
+        if (pager.currentPage != state.reelIndex) pager.animateScrollToPage(state.reelIndex)
+    }
+    Column(Modifier.fillMaxSize().background(Color.Black)) {
+        VerticalPager(state = pager, modifier = Modifier.weight(1f).fillMaxWidth(), key = { videos[it].id }) { page ->
+            val video = videos[page]
+            Box(Modifier.fillMaxSize()) {
+                if (player.video == video) {
+                    PlayerSurface(player, onAction, ContentScale.Crop, Modifier.fillMaxSize())
+                } else {
+                    MediaImage(video.thumb, maxPx = 720, modifier = Modifier.fillMaxSize(), placeholder = Color.Black)
+                }
+                ReelOverlay(video, onAction)
+            }
+        }
+        GestureBar(color = Color.White, onHome = onHome)
+    }
+}
+
+@Composable
+private fun ReelOverlay(video: MediaVideo, onAction: (YouTubeAction) -> Unit) {
+    var liked by remember(video.id) { mutableStateOf(false) }
+    val seed = video.id.hashCode().let { if (it < 0) -it else it }
+    Box(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            CornerButton(TotPocketIcons.Back, "Back", Modifier) { onAction(YouTubeAction.Close) }
+            Text("Shorts", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Column(
+            Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            ToddlerButton(
+                onClick = { liked = !liked },
+                contentDescription = "Like",
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.35f),
+                outline = Color.Transparent,
+                outlineWidth = 1.dp,
+                minSize = 56.dp,
+            ) { Text(if (liked) "❤️" else "🤍", fontSize = 28.sp) }
+            Text("${seed % 90 + (if (liked) 11 else 10)}K", color = Color.White, fontSize = 13.sp)
+        }
+        Column(
+            Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))))
+                .padding(start = 16.dp, end = 90.dp, top = 40.dp, bottom = 20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ChannelAvatar(video.channel)
+                Spacer(Modifier.width(10.dp))
+                Text(video.channel, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(video.title, color = Color.White, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun CornerButton(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    ToddlerButton(
+        onClick = onClick,
+        contentDescription = label,
+        modifier = modifier.size(56.dp),
+        shape = CircleShape,
+        color = Color.Black.copy(alpha = 0.35f),
+        outline = Color.Transparent,
+        outlineWidth = 1.dp,
+        minSize = 48.dp,
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+    }
+}
+
+/** Whatever is playing — a slideshow or a phone video — sized by [contentScale]. */
+@Composable
+private fun PlayerSurface(player: PlayerState, onAction: (YouTubeAction) -> Unit, contentScale: ContentScale, modifier: Modifier) {
+    Box(modifier) {
+        when (val video = player.video) {
+            is MediaVideo.Slideshow -> Slideshow(video, player, contentScale)
+            is MediaVideo.DeviceVideo -> VideoSurface(
+                uri = video.uri,
+                playKey = player.playKey,
+                onFinished = { onAction(YouTubeAction.VideoEnded) },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (!player.playing) ReplayButton(onClick = { onAction(YouTubeAction.Replay) }, modifier = Modifier.align(Alignment.Center))
     }
 }
 
@@ -170,16 +393,10 @@ private fun WatchPage(player: PlayerState, upNext: List<MediaVideo>, onAction: (
     LazyColumn(modifier.fillMaxWidth()) {
         item(key = "player") {
             Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) {
-                when (val video = player.video) {
-                    is MediaVideo.Slideshow -> Slideshow(video, player)
-                    is MediaVideo.DeviceVideo -> VideoSurface(
-                        uri = video.uri,
-                        playKey = player.playKey,
-                        onFinished = { onAction(YouTubeAction.VideoEnded) },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                PlayerSurface(player, onAction, ContentScale.Crop, Modifier.fillMaxSize())
+                CornerButton(TotPocketIcons.FullScreen, "Full screen", Modifier.align(Alignment.BottomEnd).padding(6.dp)) {
+                    onAction(YouTubeAction.EnterFullScreen)
                 }
-                if (!player.playing) ReplayButton(onClick = { onAction(YouTubeAction.Replay) }, modifier = Modifier.align(Alignment.Center))
             }
         }
         item(key = "about") { VideoInfo(player.video) }
@@ -269,7 +486,7 @@ private fun Divider() {
 
 /** Photos cross-fading with a slow zoom, and YouTube's red progress bar along the bottom. */
 @Composable
-private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState) {
+private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState, contentScale: ContentScale) {
     val progress = remember(video.id, player.playKey) { Animatable(0f) }
     LaunchedEffect(video.id, player.playKey) {
         progress.snapTo(0f)
@@ -292,7 +509,7 @@ private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState) {
                     scaleX = zoom.value
                     scaleY = zoom.value
                 },
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 placeholder = Color.Black,
             )
         }
