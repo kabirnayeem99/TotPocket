@@ -3,6 +3,7 @@ package io.github.kabirnayeem99.totpocket.settings
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import io.github.kabirnayeem99.totpocket.SwallowBackgroundErrors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +26,7 @@ class AndroidSettingsStore(context: Context) : SettingsStore {
 
     // One thread for the read and every write, so they happen in order.
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1) + SwallowBackgroundErrors)
     private lateinit var prefs: SharedPreferences
 
     private val _settings = MutableStateFlow(ParentSettings())
@@ -35,16 +36,20 @@ class AndroidSettingsStore(context: Context) : SettingsStore {
 
     init {
         scope.launch {
-            prefs = appContext.getSharedPreferences("parent_settings", Context.MODE_PRIVATE)
-            _settings.value = ParentSettings(
-                volumeCeiling = prefs.getFloat(KEY_VOLUME, ParentSettings.DEFAULT_VOLUME),
-                playLimitMinutes = prefs.getInt(KEY_PLAY_LIMIT, 0),
-                pin = prefs.getString(KEY_PIN, null),
-                keepPinned = prefs.getBoolean(KEY_KEEP_PINNED, true),
-                homeApp = prefs.getBoolean(KEY_HOME_APP, false),
-                showSystemBars = prefs.getBoolean(KEY_SHOW_BARS, false),
-            )
-            _loaded.value = true
+            // Whatever happens, the app must open: a failed read leaves the defaults.
+            try {
+                prefs = appContext.getSharedPreferences("parent_settings", Context.MODE_PRIVATE)
+                _settings.value = ParentSettings(
+                    volumeCeiling = prefs.getFloat(KEY_VOLUME, ParentSettings.DEFAULT_VOLUME),
+                    playLimitMinutes = prefs.getInt(KEY_PLAY_LIMIT, 0),
+                    pin = prefs.getString(KEY_PIN, null),
+                    keepPinned = prefs.getBoolean(KEY_KEEP_PINNED, true),
+                    homeApp = prefs.getBoolean(KEY_HOME_APP, false),
+                    showSystemBars = prefs.getBoolean(KEY_SHOW_BARS, false),
+                )
+            } finally {
+                _loaded.value = true
+            }
         }
     }
 
@@ -63,6 +68,7 @@ class AndroidSettingsStore(context: Context) : SettingsStore {
     private fun save() {
         val saved = _settings.value
         scope.launch {
+            if (!::prefs.isInitialized) return@launch
             // apply(): the file write itself also happens off the main thread.
             prefs.edit {
                 putFloat(KEY_VOLUME, saved.volumeCeiling)

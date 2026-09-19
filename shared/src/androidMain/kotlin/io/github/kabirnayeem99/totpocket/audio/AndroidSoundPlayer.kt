@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
+import io.github.kabirnayeem99.totpocket.SwallowBackgroundErrors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +35,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class AndroidSoundPlayer(context: Context) : SoundPlayer {
 
     private val appContext = context.applicationContext
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + SwallowBackgroundErrors)
     private val cacheLock = Mutex()
     private val missing = ConcurrentHashMap.newKeySet<SoundRef>()
 

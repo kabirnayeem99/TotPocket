@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import io.github.kabirnayeem99.totpocket.SwallowBackgroundErrors
 import io.github.kabirnayeem99.totpocket.online.PhotoDownloads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +35,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class AndroidMediaLibrary(context: Context, private val downloads: PhotoDownloads) : MediaLibrary {
 
     private val appContext = context.applicationContext
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + SwallowBackgroundErrors)
     private val _state = MutableStateFlow(MediaLibraryState())
     override val state: StateFlow<MediaLibraryState> = _state.asStateFlow()
 

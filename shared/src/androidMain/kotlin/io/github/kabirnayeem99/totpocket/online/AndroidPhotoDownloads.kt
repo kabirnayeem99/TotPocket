@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.content.edit
+import io.github.kabirnayeem99.totpocket.SwallowBackgroundErrors
 import io.github.kabirnayeem99.totpocket.media.ImageSource
 import io.github.kabirnayeem99.totpocket.media.MediaPhoto
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +38,7 @@ class AndroidPhotoDownloads(
     // filesDir touches the disk the first time, so the folder is only worked out on the IO thread.
     private val dir by lazy { File(appContext.filesDir, "media/downloads") }
     private val indexFile by lazy { File(dir, "index.json") }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + SwallowBackgroundErrors)
     private val lock = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
 

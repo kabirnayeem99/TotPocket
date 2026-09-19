@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -427,7 +429,9 @@ private fun BoxScope.ReelOverlay(video: MediaVideo, onAction: (YouTubeAction) ->
 private fun PlayerSurface(player: PlayerState, onAction: (YouTubeAction) -> Unit, contentScale: ContentScale, modifier: Modifier) {
     Box(modifier) {
         when (val video = player.video) {
-            is MediaVideo.Slideshow -> Slideshow(video, player)
+            // Keyed per video: a crossfade left over from the previous slideshow must never ask
+            // this one for a slide it doesn't have.
+            is MediaVideo.Slideshow -> key(video.id) { Slideshow(video, player) }
             is MediaVideo.DeviceVideo -> VideoSurface(
                 uri = video.uri,
                 playKey = player.playKey,
@@ -454,9 +458,9 @@ private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState) {
             drawRect(BrandColors.YouTube, topLeft = Offset(0f, size.height - bar), size = Size(size.width * fraction, bar))
         },
     ) {
-        Crossfade(targetState = player.slide, animationSpec = tween(600), label = "slide") { slide ->
+        Crossfade(targetState = player.slide.coerceIn(0, video.photos.lastIndex), animationSpec = tween(600), label = "slide") { slide ->
             SlidePhoto(
-                video.photos[slide].image,
+                video.photos[slide.coerceIn(0, video.photos.lastIndex)].image,
                 intoSlide = ((position - slide * MediaVideo.SLIDE_MS).toFloat() / MediaVideo.SLIDE_MS).coerceIn(0f, 1f),
                 modifier = Modifier.fillMaxSize().padding(bottom = 3.dp),
             )
@@ -501,7 +505,8 @@ private fun SlidePhoto(source: ImageSource, intoSlide: Float, modifier: Modifier
         value = withContext(Dispatchers.Default) { dominantColor(small) }
     }
     val progress by rememberUpdatedState(intoSlide)
-    BoxWithConstraints(modifier.background(backdrop), contentAlignment = Alignment.Center) {
+    // Clipped, so the zoom never spills past the player onto the page around it.
+    BoxWithConstraints(modifier.clipToBounds().background(backdrop), contentAlignment = Alignment.Center) {
         val bitmap = image ?: return@BoxWithConstraints
         val boxWidth = constraints.maxWidth.toFloat()
         val boxHeight = constraints.maxHeight.toFloat()
