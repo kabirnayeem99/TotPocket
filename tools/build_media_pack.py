@@ -142,6 +142,13 @@ SUBJECTS = {
     "painting": ("Children's paintings", None),
     "fan": ("Ceiling fans", None),
     "watch": ("Watches", None),
+    "stove": ("Gas stoves", None),
+    "glass": ("Glasses of water", None),
+    "fridge": ("Fridges", None),
+    "feeder": ("Baby bottles", None),
+    "mosque": ("Mosques", None),
+    "niqab": ("Niqab", None),
+    "thobe": ("Thobes", None),
     "airplane": ("Aeroplanes", None),
     "helicopter": ("Helicopters", None),
     "firetruck": ("Fire engines", None),
@@ -370,7 +377,7 @@ PHOTOS = {
 }
 
 
-# Left out on review: TotPocket shows no adult women, and no man uncovered between navel and knee
+# Left out on review: TotPocket shows no adult women (except fully covered in niqab, eyes only), and no man uncovered between navel and knee
 # (e.g. a lungi hitched above the knee). Hands of unknown gender and crowded streets are left out
 # too, to be safe.
 MODESTY_EXCLUDED = {
