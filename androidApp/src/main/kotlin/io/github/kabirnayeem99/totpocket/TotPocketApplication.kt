@@ -2,6 +2,8 @@ package io.github.kabirnayeem99.totpocket
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.pm.ApplicationInfo
+import android.os.StrictMode
 import io.github.kabirnayeem99.totpocket.audio.AndroidSoundPlayer
 import io.github.kabirnayeem99.totpocket.audio.Sounds
 import io.github.kabirnayeem99.totpocket.device.AndroidDeviceController
@@ -26,6 +28,11 @@ class TotPocketApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Debug builds log any disk or network access on the main thread, so none sneaks in.
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build())
+            StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectActivityLeaks().penaltyLog().build())
+        }
         val soundPlayer = AndroidSoundPlayer(this).apply { preload(Sounds.Effects) }
         val photoDownloads = AndroidPhotoDownloads(this)
         container = AppContainer(

@@ -20,3 +20,8 @@ node_modules/
 
 # Wikimedia Commons downloads (re-fetched by tools/fetch_commons_photos.py)
 tools/.commons_cache/
+
+# Release signing (see docs/install.md) — never commit keys
+keystore.properties
+*.jks
+*.keystore

@@ -11,6 +11,16 @@ plugins {
 // iOS targets are opt-in (see `enableIos` in gradle.properties) so Android builds stay fast.
 val iosEnabled = providers.gradleProperty("enableIos").getOrElse("false").toBoolean()
 
+// Compose compiler: shared stability config, and optional reports for checking skippability:
+//   ./gradlew :androidApp:assembleRelease -PcomposeReports=true  → build/compose-reports
+composeCompiler {
+    stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose-stability.conf"))
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose-reports")
+        metricsDestination = layout.buildDirectory.dir("compose-reports")
+    }
+}
+
 kotlin {
     if (iosEnabled) {
         listOf(
