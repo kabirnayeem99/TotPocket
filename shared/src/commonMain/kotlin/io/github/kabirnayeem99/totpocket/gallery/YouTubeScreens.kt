@@ -63,7 +63,7 @@ import io.github.kabirnayeem99.totpocket.media.MediaVideo
 import io.github.kabirnayeem99.totpocket.media.VideoSurface
 import io.github.kabirnayeem99.totpocket.media.formatDuration
 import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyles
-import io.github.kabirnayeem99.totpocket.ui.components.GestureBar
+import io.github.kabirnayeem99.totpocket.ui.components.NavigationButtons
 import io.github.kabirnayeem99.totpocket.ui.components.StatusStrip
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
 import io.github.kabirnayeem99.totpocket.ui.icons.TotPocketIcons
@@ -113,7 +113,7 @@ fun YouTubeContent(state: YouTubeUiState, onAction: (YouTubeAction) -> Unit, onB
                 StatusStrip(contentColor = Color.White, modifier = Modifier.background(Color.Black))
                 WatchPage(player, state.upNext, onAction, Modifier.weight(1f))
             }
-            GestureBar(color = AppChromeStyles.System.gestureBar, onHome = onHome)
+            NavigationButtons(color = AppChromeStyles.System.gestureBar, onHome = onHome)
         }
     }
 }
@@ -291,7 +291,7 @@ private fun FullScreenPlayer(player: PlayerState, onAction: (YouTubeAction) -> U
             PlayerSurface(player, onAction, ContentScale.Fit, Modifier.fillMaxSize())
             PlayerControls(player, onAction, fullScreen = true)
         }
-        GestureBar(color = Color.White, onHome = onHome)
+        NavigationButtons(color = Color.White, onHome = onHome)
     }
 }
 
@@ -379,7 +379,7 @@ private fun ReelsPager(state: YouTubeUiState, player: PlayerState, onAction: (Yo
                 ReelOverlay(video, onAction)
             }
         }
-        GestureBar(color = Color.White, onHome = onHome)
+        NavigationButtons(color = Color.White, onHome = onHome)
     }
 }
 

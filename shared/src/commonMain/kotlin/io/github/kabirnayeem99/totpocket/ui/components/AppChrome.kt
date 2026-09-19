@@ -1,5 +1,6 @@
 package io.github.kabirnayeem99.totpocket.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,10 +22,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.kabirnayeem99.totpocket.rememberSystemBack
 import io.github.kabirnayeem99.totpocket.ui.icons.TotPocketIcons
 import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
 
@@ -32,7 +42,7 @@ data class AppChromeStyle(
     val background: Color,
     val barColor: Color,
     val barContent: Color,
-    /** The HyperOS gesture pill: dark on light screens, light on dark ones. */
+    /** The navigation buttons: dark on light screens, light on dark ones. */
     val gestureBar: Color,
 )
 
@@ -43,7 +53,7 @@ object AppChromeStyles {
 
 /**
  * Frame for every screen inside a pretend app: a real-looking top bar (large back arrow + title),
- * [content], and the HyperOS gesture pill at the bottom that goes Home. Nothing scrolls.
+ * [content], and the three navigation buttons at the bottom. Nothing scrolls.
  */
 @Composable
 fun AppScaffold(
@@ -59,7 +69,7 @@ fun AppScaffold(
     Column(modifier.fillMaxSize().background(style.background)) {
         if (showTopBar) AppTopBar(title, style, onBack, actions)
         Box(Modifier.weight(1f).fillMaxWidth(), content = content)
-        GestureBar(color = style.gestureBar, onHome = onHome)
+        NavigationButtons(color = style.gestureBar, onHome = onHome)
     }
 }
 
@@ -104,28 +114,58 @@ fun AppTopBar(
 }
 
 /**
- * The HyperOS navigation pill. System bars are hidden, so this stands in for them: tapping
- * anywhere along the bottom strip goes Home, just as swiping up would on the real phone.
+ * The phone's three navigation buttons — back, home, recents. System bars are hidden, so these
+ * stand in for them and are easier for a small child to find than a gesture pill. Back does what
+ * the phone's own back would; recents has nothing to show here, so it goes Home too.
  */
 @Composable
-fun GestureBar(color: Color, onHome: () -> Unit, modifier: Modifier = Modifier) {
-    // As thin as the real gesture area; the pill is the same size as HyperOS's.
+fun NavigationButtons(color: Color, onHome: () -> Unit, modifier: Modifier = Modifier) {
+    val back = rememberSystemBack()
+    Row(modifier.fillMaxWidth().height(NavigationButtonsHeight), verticalAlignment = Alignment.CenterVertically) {
+        NavigationButton("Back", back) { drawBackTriangle(color) }
+        NavigationButton("Home", onHome) { drawCircle(color, radius = size.minDimension / 2 - 1.dp.toPx(), style = Stroke(2.dp.toPx())) }
+        NavigationButton("Recent apps", onHome) {
+            val stroke = 2.dp.toPx()
+            drawRoundRect(
+                color,
+                topLeft = Offset(stroke, stroke),
+                size = Size(size.width - 2 * stroke, size.height - 2 * stroke),
+                cornerRadius = CornerRadius(3.dp.toPx()),
+                style = Stroke(stroke),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.NavigationButton(label: String, onClick: () -> Unit, glyph: DrawScope.() -> Unit) {
     ToddlerButton(
-        onClick = onHome,
-        contentDescription = "Home",
-        modifier = modifier.fillMaxWidth().height(GestureBarHeight),
+        onClick = onClick,
+        contentDescription = label,
+        modifier = Modifier.weight(1f).fillMaxHeight(),
         shape = RoundedCornerShape(0.dp),
         color = Color.Transparent,
         outline = Color.Transparent,
         outlineWidth = 1.dp,
-        pressedScale = 1f,
-        minSize = GestureBarHeight,
+        pressedScale = 0.9f,
+        minSize = NavigationButtonsHeight,
     ) {
-        Box(Modifier.width(110.dp).height(4.dp).background(color, CircleShape))
+        Canvas(Modifier.size(18.dp), onDraw = glyph)
     }
 }
 
-val GestureBarHeight = 20.dp
+private fun DrawScope.drawBackTriangle(color: Color) {
+    val inset = 1.dp.toPx()
+    val triangle = Path().apply {
+        moveTo(inset, size.height / 2)
+        lineTo(size.width - inset, inset)
+        lineTo(size.width - inset, size.height - inset)
+        close()
+    }
+    drawPath(triangle, color, style = Stroke(2.dp.toPx(), join = StrokeJoin.Round))
+}
+
+val NavigationButtonsHeight = 48.dp
 
 /** A round button with an icon and a small caption, as on real in-call screens. */
 @Composable

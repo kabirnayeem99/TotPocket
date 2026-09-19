@@ -1,6 +1,7 @@
 package io.github.kabirnayeem99.totpocket.gallery
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -18,11 +20,15 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,8 +51,11 @@ import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyle
 import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyles
 import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
 import io.github.kabirnayeem99.totpocket.ui.components.AppTopBar
-import io.github.kabirnayeem99.totpocket.ui.components.GestureBar
+import io.github.kabirnayeem99.totpocket.ui.components.NavigationButtons
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
+import io.github.kabirnayeem99.totpocket.ui.icons.TotPocketIcons
+import io.github.kabirnayeem99.totpocket.ui.theme.TotPocketDimens
+import kotlinx.coroutines.launch
 
 private val DarkText = Color(0xFF1B1B1B)
 private val GreyText = Color(0xFF6F7378)
@@ -152,40 +161,79 @@ fun AlbumContent(state: AlbumUiState, onAction: (AlbumAction) -> Unit, onBack: (
 }
 
 /**
- * Full-screen photos on black: swipe sideways through the album, the photo's name at the
- * bottom. Only a back arrow — no share, edit or delete.
+ * Full-screen photos on black: swipe sideways through the album, or tap the round arrows at the
+ * sides, which are always there so a child who can't swipe yet can still move on. The photo's name
+ * is at the bottom. Only a back arrow — no share, edit or delete.
  */
 @Composable
 private fun PhotoViewer(photos: List<MediaPhoto>, startIndex: Int, onAction: (AlbumAction) -> Unit, onHome: () -> Unit) {
     val pager = rememberPagerState(initialPage = startIndex) { photos.size }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(pager.settledPage) { onAction(AlbumAction.PhotoShown(pager.settledPage)) }
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         AppTopBar(title = "", style = ViewerChrome, onBack = { onAction(AlbumAction.CloseViewer) })
-        HorizontalPager(state = pager, modifier = Modifier.weight(1f).fillMaxWidth(), key = { photos[it].id }) { page ->
-            Box(Modifier.fillMaxSize()) {
-                MediaImage(
-                    photos[page].image,
-                    maxPx = 1080,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    placeholder = Color.Black,
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(photos[page].title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                    photos[page].credit?.let { credit ->
-                        Spacer(Modifier.height(6.dp))
-                        Text(credit, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { photos[it].id }) { page ->
+                Box(Modifier.fillMaxSize()) {
+                    MediaImage(
+                        photos[page].image,
+                        maxPx = 1080,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        placeholder = Color.Black,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
+                            .padding(horizontal = 24.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(photos[page].title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                        photos[page].credit?.let { credit ->
+                            Spacer(Modifier.height(6.dp))
+                            Text(credit, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2)
+                        }
                     }
                 }
             }
+            val page = pager.currentPage
+            if (page > 0) {
+                PagerArrow(TotPocketIcons.ChevronLeft, "Previous photo", Modifier.align(Alignment.CenterStart)) {
+                    scope.launch { pager.animateScrollToPage(page - 1) }
+                }
+            }
+            if (page < photos.lastIndex) {
+                PagerArrow(TotPocketIcons.ChevronRight, "Next photo", Modifier.align(Alignment.CenterEnd)) {
+                    scope.launch { pager.animateScrollToPage(page + 1) }
+                }
+            }
         }
-        GestureBar(color = Color.White, onHome = onHome)
+        NavigationButtons(color = Color.White, onHome = onHome)
+    }
+}
+
+/** An iOS-style round arrow over the photo: a soft dark disc with a white chevron. */
+@Composable
+private fun PagerArrow(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    ToddlerButton(
+        onClick = onClick,
+        contentDescription = label,
+        modifier = modifier.padding(horizontal = 4.dp).size(TotPocketDimens.MinTouchTarget),
+        shape = CircleShape,
+        color = Color.Transparent,
+        outline = Color.Transparent,
+        outlineWidth = 1.dp,
+        pressedScale = 0.9f,
+    ) {
+        Box(
+            Modifier.size(52.dp)
+                .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+        }
     }
 }

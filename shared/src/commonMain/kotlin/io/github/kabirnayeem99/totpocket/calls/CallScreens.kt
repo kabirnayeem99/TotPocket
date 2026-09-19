@@ -52,7 +52,7 @@ import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyles
 import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
 import io.github.kabirnayeem99.totpocket.ui.components.AppTopBar
 import io.github.kabirnayeem99.totpocket.ui.components.CallControl
-import io.github.kabirnayeem99.totpocket.ui.components.GestureBar
+import io.github.kabirnayeem99.totpocket.ui.components.NavigationButtons
 import io.github.kabirnayeem99.totpocket.ui.components.StatusStrip
 import io.github.kabirnayeem99.totpocket.ui.components.ToddlerButton
 import io.github.kabirnayeem99.totpocket.ui.components.isLandscape
@@ -151,7 +151,7 @@ private fun WhatsAppCallsList(
                 ContactRow(contact, style, isVideo = true, onClick = { onCall(contact.id) }, subtitle = "↗ Today, 10:1${contact.name.length % 10}")
             }
         }
-        GestureBar(color = style.listChrome.gestureBar, onHome = onHome)
+        NavigationButtons(color = style.listChrome.gestureBar, onHome = onHome)
     }
 }
 
@@ -376,7 +376,7 @@ fun CallContent(
                 Spacer(Modifier.height(24.dp))
             }
         }
-        GestureBar(color = Color.White, onHome = onHome)
+        NavigationButtons(color = Color.White, onHome = onHome)
     }
 }
 
@@ -523,7 +523,7 @@ private fun VideoCallContent(
                 }
             }
         }
-        GestureBar(color = Color.White, onHome = onHome, modifier = Modifier.background(if (app == CallApp.WhatsApp) Color(0xFF1F2C33) else BrandColors.Imo))
+        NavigationButtons(color = Color.White, onHome = onHome, modifier = Modifier.background(if (app == CallApp.WhatsApp) Color(0xFF1F2C33) else BrandColors.Imo))
     }
 }
 
