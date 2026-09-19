@@ -2,6 +2,8 @@ package io.github.kabirnayeem99.totpocket
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import io.github.kabirnayeem99.totpocket.audio.SoundPlayer
+import io.github.kabirnayeem99.totpocket.calls.CallSpeech
+import io.github.kabirnayeem99.totpocket.calls.SilentCallSpeech
 import io.github.kabirnayeem99.totpocket.device.DeviceController
 import io.github.kabirnayeem99.totpocket.media.ImageLoader
 import io.github.kabirnayeem99.totpocket.media.MediaLibrary
@@ -25,6 +27,8 @@ class AppContainer(
     /** The grown-ups' Commons search and the photos they added — off where there's no network code. */
     val onlinePhotoSearch: OnlinePhotoSearch = NoOnlinePhotoSearch,
     val photoDownloads: PhotoDownloads = NoPhotoDownloads,
+    /** A fresh Bangla voice for each pretend call, so one call can never cut into the next. */
+    val newCallSpeech: () -> CallSpeech = { SilentCallSpeech },
     val random: Random = Random.Default,
 )
 

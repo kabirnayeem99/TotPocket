@@ -71,6 +71,17 @@ import io.github.kabirnayeem99.totpocket.ui.launcher.BrandColors
 import io.github.kabirnayeem99.totpocket.ui.launcher.LauncherGlyphs
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.ImageBitmap
+import io.github.kabirnayeem99.totpocket.media.ImageSource
+import io.github.kabirnayeem99.totpocket.media.dominantColor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.math.max
+import kotlin.math.min
 
 private val DarkText = Color(0xFF0F0F0F)
 private val GreyText = Color(0xFF606060)
@@ -416,7 +427,7 @@ private fun BoxScope.ReelOverlay(video: MediaVideo, onAction: (YouTubeAction) ->
 private fun PlayerSurface(player: PlayerState, onAction: (YouTubeAction) -> Unit, contentScale: ContentScale, modifier: Modifier) {
     Box(modifier) {
         when (val video = player.video) {
-            is MediaVideo.Slideshow -> Slideshow(video, player, contentScale)
+            is MediaVideo.Slideshow -> Slideshow(video, player)
             is MediaVideo.DeviceVideo -> VideoSurface(
                 uri = video.uri,
                 playKey = player.playKey,
@@ -433,7 +444,7 @@ private fun PlayerSurface(player: PlayerState, onAction: (YouTubeAction) -> Unit
  * follow the slideshow's clock, so pausing freezes them.
  */
 @Composable
-private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState, contentScale: ContentScale) {
+private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState) {
     val position = player.positionMs
     Box(
         Modifier.fillMaxSize().drawBehind {
@@ -444,17 +455,10 @@ private fun Slideshow(video: MediaVideo.Slideshow, player: PlayerState, contentS
         },
     ) {
         Crossfade(targetState = player.slide, animationSpec = tween(600), label = "slide") { slide ->
-            MediaImage(
+            SlidePhoto(
                 video.photos[slide].image,
-                maxPx = 1080,
-                modifier = Modifier.fillMaxSize().padding(bottom = 3.dp).graphicsLayer {
-                    val intoSlide = ((position - slide * MediaVideo.SLIDE_MS).toFloat() / MediaVideo.SLIDE_MS).coerceIn(0f, 1f)
-                    val zoom = 1f + 0.08f * intoSlide
-                    scaleX = zoom
-                    scaleY = zoom
-                },
-                contentScale = contentScale,
-                placeholder = Color.Black,
+                intoSlide = ((position - slide * MediaVideo.SLIDE_MS).toFloat() / MediaVideo.SLIDE_MS).coerceIn(0f, 1f),
+                modifier = Modifier.fillMaxSize().padding(bottom = 3.dp),
             )
         }
     }
@@ -481,5 +485,40 @@ private fun RoundButton(
         minSize = 44.dp,
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.5f))
+    }
+}
+
+/**
+ * One slideshow photo: the whole picture first, nothing cut off, on its own main colour; then a
+ * slow zoom until it fills the frame by the end of the slide. [intoSlide] runs 0 → 1.
+ */
+@Composable
+private fun SlidePhoto(source: ImageSource, intoSlide: Float, modifier: Modifier = Modifier) {
+    val loader = LocalAppContainer.current.imageLoader
+    val image by produceState<ImageBitmap?>(null, source) { value = loader.load(source, 1080) }
+    val backdrop by produceState(Color.Black, source) {
+        val small = loader.load(source, 48) ?: return@produceState
+        value = withContext(Dispatchers.Default) { dominantColor(small) }
+    }
+    val progress by rememberUpdatedState(intoSlide)
+    BoxWithConstraints(modifier.background(backdrop), contentAlignment = Alignment.Center) {
+        val bitmap = image ?: return@BoxWithConstraints
+        val boxWidth = constraints.maxWidth.toFloat()
+        val boxHeight = constraints.maxHeight.toFloat()
+        val fit = min(boxWidth / bitmap.width, boxHeight / bitmap.height)
+        val fill = max(boxWidth / bitmap.width, boxHeight / bitmap.height)
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                // Hold the whole photo for the first fifth, then ease in until it fills the frame.
+                val t = ((progress - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                val eased = t * t * (3f - 2f * t)
+                val zoom = 1f + (fill / fit - 1f) * eased
+                scaleX = zoom
+                scaleY = zoom
+            },
+        )
     }
 }

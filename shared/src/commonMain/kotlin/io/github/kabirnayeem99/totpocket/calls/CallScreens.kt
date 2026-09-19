@@ -29,6 +29,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -333,7 +336,7 @@ fun CallScreen(
 ) {
     val container = LocalAppContainer.current
     val viewModel = viewModel(key = "call-$contactId") {
-        CallViewModel(CallContacts.find(contactId), container.soundPlayer, container.device, container.random)
+        CallViewModel(CallContacts.find(contactId), container.soundPlayer, container.newCallSpeech(), container.device, container.random)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnFinished by rememberUpdatedState(onFinished)
@@ -344,6 +347,9 @@ fun CallScreen(
             }
         }
     }
+    // Leaving the call — Home, Back, or the app going away — ends it and its voice at once.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onAction(CallAction.Leave) }
+    DisposableEffect(viewModel) { onDispose { viewModel.onAction(CallAction.Leave) } }
     CallContent(state, app, viewModel::onAction, onHome, modifier)
 }
 
@@ -639,7 +645,7 @@ private fun CallControls(phase: CallPhase, onAction: (CallAction) -> Unit) {
 @Composable
 private fun WhatsAppCallPreview() {
     TotPocketTheme {
-        CallContent(CallUiState(CallContacts.Grandma, CallPhase.InCall, isTalking = true), CallApp.WhatsApp, onAction = {}, onHome = {})
+        CallContent(CallUiState(CallContacts.Moyna, CallPhase.InCall, isTalking = true), CallApp.WhatsApp, onAction = {}, onHome = {})
     }
 }
 

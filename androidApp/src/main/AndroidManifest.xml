@@ -20,6 +20,14 @@
         android:name="android.hardware.camera.front"
         android:required="false" />
 
+    <!-- The pretend callers speak through the phone's text-to-speech engine, which Android 11+
+         only lets apps find when they say they look for one. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".TotPocketApplication"
         android:allowBackup="true"

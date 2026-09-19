@@ -2,6 +2,7 @@ package io.github.kabirnayeem99.totpocket.calls
 
 import app.cash.turbine.test
 import io.github.kabirnayeem99.totpocket.audio.Sounds
+import io.github.kabirnayeem99.totpocket.testing.FakeCallSpeech
 import io.github.kabirnayeem99.totpocket.testing.FakeDeviceController
 import io.github.kabirnayeem99.totpocket.testing.FakeSoundPlayer
 import io.github.kabirnayeem99.totpocket.testing.MainDispatcherTest
@@ -23,11 +24,12 @@ import kotlin.time.Duration.Companion.seconds
 class CallViewModelTest : MainDispatcherTest() {
 
     private val player = FakeSoundPlayer()
+    private val speech = FakeCallSpeech()
     private val device = FakeDeviceController()
-    private val mum = CallContacts.Mum
+    private val mum = CallContacts.Tuntuni
 
     private fun TestScope.newCall(): CallViewModel {
-        val viewModel = CallViewModel(mum, player, device, Random(42))
+        val viewModel = CallViewModel(mum, player, speech, device, Random(42))
         // state is shared WhileSubscribed, as the screen would subscribe; keep one subscriber alive.
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect() }
         runCurrent()
@@ -40,6 +42,7 @@ class CallViewModelTest : MainDispatcherTest() {
         assertEquals(CallPhase.Calling, viewModel.state.value.phase)
         assertEquals(FakeSoundPlayer.Event.Played(Sounds.Ringback, loop = true), player.events.first())
         assertTrue(device.screenOn)
+        assertTrue(speech.prepared, "the voice gets ready while it rings")
     }
 
     @Test
@@ -52,40 +55,47 @@ class CallViewModelTest : MainDispatcherTest() {
         advanceTimeBy(2.milliseconds)
         runCurrent()
         assertEquals(CallPhase.InCall, viewModel.state.value.phase)
-        assertEquals(mum.greeting, player.played.last())
+        assertEquals(FakeSoundPlayer.Event.Played(Sounds.CallAmbience, loop = true), player.events.last(), "soft rain replaces the ringing")
+        assertEquals(mum.lines.greeting, speech.spoken.last())
     }
 
     @Test
-    fun `short replies follow every few seconds`() = runTest(dispatcher) {
-        newCall().connectNow()
-        player.finishClip()
-        advanceTimeBy(CallScript.FillerGapMax + 1.milliseconds)
-        runCurrent()
-        assertTrue(player.played.last() in mum.fillers)
-    }
-
-    @Test
-    fun `a reply never interrupts a line that is still playing`() = runTest(dispatcher) {
-        newCall().connectNow()
-        // The greeting never "finishes" here, so no reply may start.
-        advanceTimeBy(30.seconds)
-        runCurrent()
-        assertEquals(listOf(Sounds.Ringback, mum.greeting), player.played)
-    }
-
-    @Test
-    fun `the call says goodbye by itself after a minute`() = runTest(dispatcher) {
+    fun `after the salam the caller tells a story or rhyme, a line at a time, then says goodbye and hangs up`() = runTest(dispatcher) {
         val viewModel = newCall().connectNow()
         viewModel.effects.test {
-            advanceTimeBy(CallScript.CallLength + 1.milliseconds)
-            runCurrent()
+            // Every line is said in full before the next one, after a pause.
+            repeat(30) {
+                speech.finishLine()
+                advanceTimeBy(CallScript.ReplyPause + 1.milliseconds)
+                runCurrent()
+            }
+            assertEquals(mum.lines.greeting, speech.spoken.first())
+            assertEquals(mum.lines.bye, speech.spoken.last())
+            val told = speech.spoken.drop(1).dropLast(1)
+            assertTrue(mum.lines.talks.any { it.lines == told }, "one whole story or rhyme, in order: $told")
             assertEquals(CallPhase.Ended, viewModel.state.value.phase)
-            assertEquals(mum.bye, player.played.last())
             assertFalse(device.screenOn)
-
             advanceTimeBy(CallScript.EndedHold)
             assertEquals(CallEffect.Finished, awaitItem())
         }
+    }
+
+    @Test
+    fun `the next line waits until the previous one is finished`() = runTest(dispatcher) {
+        newCall().connectNow()
+        // The salam never "finishes" here, so nothing else may be said.
+        advanceTimeBy(30.seconds)
+        runCurrent()
+        assertEquals(listOf(mum.lines.greeting), speech.spoken)
+    }
+
+    @Test
+    fun `a call ends by itself even if a line never finishes`() = runTest(dispatcher) {
+        val viewModel = newCall().connectNow()
+        advanceTimeBy(CallScript.CallLength + 1.milliseconds)
+        runCurrent()
+        assertEquals(CallPhase.Ended, viewModel.state.value.phase)
+        assertEquals(mum.lines.bye, speech.spoken.last())
     }
 
     @Test
@@ -93,12 +103,12 @@ class CallViewModelTest : MainDispatcherTest() {
         val viewModel = newCall().connectNow()
         viewModel.onAction(CallAction.HangUp)
         runCurrent()
-        val heardAtHangUp = player.played.toList()
-        assertEquals(mum.bye, heardAtHangUp.last())
+        val saidAtHangUp = speech.spoken.toList()
+        assertEquals(mum.lines.bye, saidAtHangUp.last())
 
         advanceTimeBy(5.seconds)
         runCurrent()
-        assertEquals(heardAtHangUp, player.played, "no replies or second goodbye after hanging up")
+        assertEquals(saidAtHangUp, speech.spoken, "no replies or second goodbye after hanging up")
     }
 
     @Test
@@ -114,17 +124,18 @@ class CallViewModelTest : MainDispatcherTest() {
             advanceTimeBy(CallScript.ConnectDelay + CallScript.EndedHold)
             assertEquals(CallEffect.Finished, awaitItem())
         }
-        assertEquals(listOf(Sounds.Ringback), player.played, "nobody picks up after hanging up")
+        assertEquals(listOf(Sounds.Ringback), player.played)
+        assertEquals(emptyList(), speech.spoken, "nobody picks up after hanging up")
     }
 
     @Test
-    fun `the caller shows as talking only while one of their lines plays`() = runTest(dispatcher) {
+    fun `the caller shows as talking only while one of their lines is said`() = runTest(dispatcher) {
         val viewModel = newCall()
         viewModel.state.test {
             assertFalse(awaitItem().isTalking, "the ringback is not the caller talking")
             advanceTimeBy(CallScript.ConnectDelay + 1.milliseconds)
             assertTrue(expectMostRecentAfter { runCurrent() }.isTalking)
-            player.finishClip()
+            speech.finishLine()
             assertFalse(awaitItem().isTalking)
         }
     }

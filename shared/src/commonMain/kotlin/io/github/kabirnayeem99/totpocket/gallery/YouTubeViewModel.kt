@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.kabirnayeem99.totpocket.audio.SoundPlayer
+import io.github.kabirnayeem99.totpocket.audio.Sounds
 import io.github.kabirnayeem99.totpocket.media.MediaLibrary
 import io.github.kabirnayeem99.totpocket.media.MediaVideo
 import kotlinx.coroutines.Job
@@ -83,7 +84,8 @@ sealed interface YouTubeAction {
 
 /**
  * The pretend YouTube: photo-pack slideshows and the phone's own videos. A slideshow shows each
- * photo for a few seconds (playing its sound, if any). On the watch page and full screen a video
+ * photo for a few seconds, playing its sound if it has one; a slideshow with no sounds at all has
+ * quiet birdsong under it instead. On the watch page and full screen a video
  * plays once; in Shorts, as on the real app, the next one starts when it ends. Slideshows and
  * the phone's videos are mixed in a random order, new each time YouTube is opened.
  */
@@ -115,9 +117,9 @@ class YouTubeViewModel(
             YouTubeAction.ExitFullScreen -> playerState.update { it?.copy(mode = PlayerMode.Watch) }
             YouTubeAction.Replay -> playerState.value?.let { start(it.video, it.mode, it.playKey + 1) }
             YouTubeAction.TogglePause -> {
-                val paused = playerState.value?.paused ?: return
-                if (!paused) player.stop()
-                playerState.update { it?.copy(paused = !paused) }
+                val current = playerState.value ?: return
+                if (!current.paused) player.stop() else if (current.video.isSilentSlideshow()) player.play(Sounds.SlideshowAmbience, loop = true)
+                playerState.update { it?.copy(paused = !current.paused) }
             }
             YouTubeAction.Close -> when (playerState.value?.mode) {
                 PlayerMode.FullScreen -> playerState.update { it?.copy(mode = PlayerMode.Watch) }
@@ -134,6 +136,7 @@ class YouTubeViewModel(
         stopAll()
         playerState.update { PlayerState(video, mode, slide = 0, playing = true, playKey = playKey) }
         if (video is MediaVideo.Slideshow) {
+            if (video.isSilentSlideshow()) player.play(Sounds.SlideshowAmbience, loop = true)
             slideshow = viewModelScope.launch {
                 // A clock that only moves while not paused; the photo on show follows it.
                 val total = video.durationMs
@@ -166,6 +169,8 @@ class YouTubeViewModel(
             playerState.update { it?.copy(playing = false) }
         }
     }
+
+    private fun MediaVideo.isSilentSlideshow() = this is MediaVideo.Slideshow && photos.none { it.sound != null }
 
     private fun stopAll() {
         slideshow?.cancel()

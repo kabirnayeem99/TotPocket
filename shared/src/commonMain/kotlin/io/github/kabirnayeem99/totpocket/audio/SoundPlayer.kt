@@ -42,5 +42,11 @@ object Sounds {
     /** The ringing heard while waiting for the other person to pick up. */
     val Ringback = SoundRef("files/calls/ringback.ogg")
 
+    /** Faint rain under a pretend call, so it sounds like a real line (thunder softened, −37 LUFS). */
+    val CallAmbience = SoundRef("files/ambient/rain.ogg")
+
+    /** Quiet morning birds under a slideshow whose photos have no sound of their own (−30 LUFS). */
+    val SlideshowAmbience = SoundRef("files/ambient/birds.ogg")
+
     val Effects: List<SoundRef> = listOf(Boop, Pop, Chime)
 }

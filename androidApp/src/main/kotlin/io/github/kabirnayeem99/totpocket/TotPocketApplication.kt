@@ -6,6 +6,7 @@ import android.content.pm.ApplicationInfo
 import android.os.StrictMode
 import io.github.kabirnayeem99.totpocket.audio.AndroidSoundPlayer
 import io.github.kabirnayeem99.totpocket.audio.Sounds
+import io.github.kabirnayeem99.totpocket.calls.AndroidCallSpeech
 import io.github.kabirnayeem99.totpocket.device.AndroidDeviceController
 import io.github.kabirnayeem99.totpocket.media.AndroidImageLoader
 import io.github.kabirnayeem99.totpocket.media.AndroidMediaLibrary
@@ -35,14 +36,16 @@ class TotPocketApplication : Application() {
         }
         val soundPlayer = AndroidSoundPlayer(this).apply { preload(Sounds.Effects) }
         val photoDownloads = AndroidPhotoDownloads(this)
+        val settingsStore = AndroidSettingsStore(this)
         container = AppContainer(
             soundPlayer = soundPlayer,
             device = deviceController,
-            settingsStore = AndroidSettingsStore(this),
+            settingsStore = settingsStore,
             mediaLibrary = AndroidMediaLibrary(this, photoDownloads),
             imageLoader = AndroidImageLoader(this),
             onlinePhotoSearch = CommonsPhotoSearch(),
             photoDownloads = photoDownloads,
+            newCallSpeech = { AndroidCallSpeech(this) { settingsStore.settings.value.volumeCeiling } },
         )
     }
 }
