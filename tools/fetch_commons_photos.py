@@ -13,6 +13,8 @@ Usage:
     python3 tools/fetch_commons_photos.py add CATEGORY SUBJECT TITLE "SEARCH WORDS" [--count N] [--any]
         fetch N new candidates for one subject (again for more; already-seen files are skipped)
         and draw a sheet of just those; --any searches all Commons photos, not only Quality images
+    python3 tools/fetch_commons_photos.py file CATEGORY SUBJECT TITLE "File:Name.jpg" ...
+        the same for specific files, e.g. pasted as [[File:Name.jpg|label]]
     python3 tools/fetch_commons_photos.py approve INDEX...   mark candidates (sheet numbers) as OK
     python3 tools/fetch_commons_photos.py reject INDEX...    mark candidates as NO
 
@@ -115,19 +117,31 @@ def plain(text: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", text or ""))).strip()
 
 
+IMAGE_INFO = {
+    "prop": "imageinfo",
+    "iiprop": "url|size|mime|extmetadata",
+    "iiurlwidth": 1280,
+    "iiextmetadatafilter": "LicenseShortName|Artist|AttributionRequired",
+}
+
+
 def search(words: str, limit: int, quality_only: bool = True) -> list[dict]:
     wanted = f"{words} filetype:bitmap" + (" incategory:Quality_images" if quality_only else "")
-    data = api({
-        "action": "query",
-        "generator": "search",
-        "gsrnamespace": 6,
-        "gsrlimit": limit,
-        "gsrsearch": wanted,
-        "prop": "imageinfo",
-        "iiprop": "url|size|mime|extmetadata",
-        "iiurlwidth": 1280,
-        "iiextmetadatafilter": "LicenseShortName|Artist|AttributionRequired",
-    })
+    return photos(api({"action": "query", "generator": "search", "gsrnamespace": 6, "gsrlimit": limit, "gsrsearch": wanted, **IMAGE_INFO}))
+
+
+def exact(titles: list[str]) -> list[dict]:
+    """Specific files, e.g. pasted as [[File:Name.jpg|label]] — in the order given."""
+    names = [re.sub(r"^\[\[|\|.*$|\]\]$", "", t).strip() for t in titles]
+    names = [n if n.startswith("File:") else f"File:{n}" for n in names]
+    found = {r["file"]: r for r in photos(api({"action": "query", "titles": "|".join(names), **IMAGE_INFO}))}
+    for name in names:
+        if name.replace("_", " ") not in found:
+            print(f"not found or not a photo: {name}")
+    return [found[n.replace("_", " ")] for n in names if n.replace("_", " ") in found]
+
+
+def photos(data: dict) -> list[dict]:
     pages = sorted(data.get("query", {}).get("pages", {}).values(), key=lambda p: p.get("index", 0))
     results = []
     for page in pages:
@@ -211,7 +225,10 @@ def add(manifest: list[dict], args: argparse.Namespace) -> None:
     if args.category not in pack.CATEGORIES:
         sys.exit(f"unknown category {args.category!r}; pick one of {', '.join(pack.CATEGORIES)}")
     seen = {e["file"] for e in manifest}
-    fresh = [r for r in search(args.words, 50, quality_only=not args.any) if r["file"] not in seen][: args.count]
+    if args.command == "file":
+        fresh = [r for r in exact(args.files) if r["file"] not in seen]
+    else:
+        fresh = [r for r in search(args.words, 50, quality_only=not args.any) if r["file"] not in seen][: args.count]
     if not fresh:
         sys.exit("no new candidates; try other search words or --any")
     start = len(manifest)
@@ -247,13 +264,18 @@ def main() -> None:
     new.add_argument("words", help="Commons search words, e.g. 'electric fan'")
     new.add_argument("--count", type=int, default=PER_SUBJECT)
     new.add_argument("--any", action="store_true", help="search all Commons photos, not only Quality images")
+    named = commands.add_parser("file", help="fetch specific Commons files as candidates for one subject")
+    named.add_argument("category")
+    named.add_argument("subject")
+    named.add_argument("title")
+    named.add_argument("files", nargs="+", help="'File:Name.jpg' or a pasted [[File:Name.jpg|label]]")
     for name in ("approve", "reject"):
         commands.add_parser(name).add_argument("indices", type=int, nargs="+")
     args = parser.parse_args()
 
     CACHE.mkdir(exist_ok=True)
     manifest = load_manifest()
-    if args.command == "add":
+    if args.command in ("add", "file"):
         add(manifest, args)
         return
     if args.command in ("approve", "reject"):
