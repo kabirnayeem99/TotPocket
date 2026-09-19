@@ -88,22 +88,22 @@ class AndroidSoundPlayer(context: Context) : SoundPlayer {
         _playing.value = sound
         scope.launch {
             val file = cachedFile(sound)
+            // Opening the file reads the disk, so the player is set up here, off the main thread.
+            val player = file?.let { runCatching { MediaPlayer().apply { setAudioAttributes(attributes); setDataSource(it.path) } }.getOrNull() }
             withContext(Dispatchers.Main) {
-                if (token != playToken) return@withContext
-                if (file == null) {
-                    _playing.value = null
+                if (token != playToken || player == null) {
+                    player?.release()
+                    if (token == playToken) _playing.value = null
                     return@withContext
                 }
-                startMediaPlayer(file, loop, token)
+                startMediaPlayer(player, file, loop, token)
             }
         }
     }
 
-    private fun startMediaPlayer(file: File, loop: Boolean, token: Int) {
+    private fun startMediaPlayer(player: MediaPlayer, file: File, loop: Boolean, token: Int) {
         audioManager.requestAudioFocus(focusRequest)
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(attributes)
-            setDataSource(file.path)
+        mediaPlayer = player.apply {
             isLooping = loop
             setVolume(ceiling, ceiling)
             setOnPreparedListener { if (token == playToken) it.start() }
