@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -49,10 +50,15 @@ class MainActivity : ComponentActivity() {
         // changes the window insets, and KeepSystemBarsHidden (in the shared UI) hides it again.
         insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         hideSystemBars()
-        app.deviceController.setSystemBarsAllowed(container.settingsStore.settings.value.showSystemBars)
         app.deviceController.attach(this)
-        // Restores the home-app choice after "Exit TotPocket" withdrew it.
-        app.deviceController.setHomeApp(container.settingsStore.settings.value.homeApp, askToChoose = false)
+        // Settings are read off the main thread; apply them once they're in.
+        lifecycleScope.launch {
+            val settings = container.settingsStore
+            settings.loaded.first { it }
+            app.deviceController.setSystemBarsAllowed(settings.settings.value.showSystemBars)
+            // Restores the home-app choice after "Exit TotPocket" withdrew it.
+            app.deviceController.setHomeApp(settings.settings.value.homeApp, askToChoose = false)
+        }
         keepPinnedWhileVisible()
         requestMediaAccess()
 
@@ -66,7 +72,8 @@ class MainActivity : ComponentActivity() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (true) {
                     // No window focus means the system pin prompt (or another dialog) is showing.
-                    if (hasWindowFocus() && container.settingsStore.settings.value.keepPinned && !app.deviceController.isPinned) {
+                    val settings = container.settingsStore
+                    if (hasWindowFocus() && settings.loaded.value && settings.settings.value.keepPinned && !app.deviceController.isPinned) {
                         app.deviceController.pin()
                     }
                     delay(PIN_CHECK_INTERVAL_MS)

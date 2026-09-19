@@ -4,6 +4,9 @@
     <!-- Only for the grown-ups' "Add photos" screen behind the PIN (Wikimedia Commons, 5 photos a day). The child's apps never go online. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Button taps tick the vibrator. HiOS sends Compose haptics through the vibrator service, which needs this. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Read-only access so Photos and YouTube can show the phone's own pictures and videos. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />

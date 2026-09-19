@@ -57,9 +57,12 @@ fun App(container: AppContainer) {
         LocalTapSound provides tapSound,
     ) {
         val settings by container.settingsStore.settings.collectAsStateWithLifecycle()
+        val loaded by container.settingsStore.loaded.collectAsStateWithLifecycle()
         KeepSystemBarsHidden(allowed = settings.showSystemBars)
         TotPocketTheme {
-            TotPocketNavHost()
+            // The saved settings (PIN, play time, pinning) are read off the main thread at start-up,
+            // which takes a moment; nothing runs on the defaults meanwhile.
+            if (loaded) TotPocketNavHost()
         }
     }
 }

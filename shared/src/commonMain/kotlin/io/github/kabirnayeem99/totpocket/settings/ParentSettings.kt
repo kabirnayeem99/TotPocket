@@ -31,7 +31,12 @@ data class ParentSettings(
 }
 
 interface SettingsStore {
+    /** The saved settings; holds the defaults until [loaded] turns true. */
     val settings: StateFlow<ParentSettings>
+
+    /** True once the saved settings were read (off the main thread). Nothing should act on [settings] before. */
+    val loaded: StateFlow<Boolean>
+
     fun update(transform: (ParentSettings) -> ParentSettings)
 }
 
@@ -39,5 +44,6 @@ interface SettingsStore {
 class InMemorySettingsStore(initial: ParentSettings = ParentSettings()) : SettingsStore {
     private val _settings = MutableStateFlow(initial)
     override val settings: StateFlow<ParentSettings> = _settings.asStateFlow()
+    override val loaded: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
     override fun update(transform: (ParentSettings) -> ParentSettings) = _settings.update(transform)
 }

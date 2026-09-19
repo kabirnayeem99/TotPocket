@@ -34,8 +34,9 @@ class AndroidPhotoDownloads(
 ) : PhotoDownloads {
 
     private val appContext = context.applicationContext
-    private val dir = File(appContext.filesDir, "media/downloads")
-    private val indexFile = File(dir, "index.json")
+    // filesDir touches the disk the first time, so the folder is only worked out on the IO thread.
+    private val dir by lazy { File(appContext.filesDir, "media/downloads") }
+    private val indexFile by lazy { File(dir, "index.json") }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
