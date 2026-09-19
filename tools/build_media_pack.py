@@ -149,6 +149,8 @@ SUBJECTS = {
     "mosque": ("Mosques", None),
     "niqab": ("Niqab", None),
     "thobe": ("Thobes", None),
+    "king": ("Ottoman sultans", None),
+    "tasbih": ("Tasbih", None),
     "airplane": ("Aeroplanes", None),
     "helicopter": ("Helicopters", None),
     "firetruck": ("Fire engines", None),
