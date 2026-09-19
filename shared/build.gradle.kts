@@ -58,6 +58,12 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            // Images: Coil fetches (OkHttp, for the grown-ups' Commons search), decodes video frames
+            // and caches in memory and on disk. Phone videos play with ExoPlayer.
+            implementation(libs.coil.network.okhttp)
+            implementation(libs.coil.video)
+            implementation(libs.media3.exoplayer)
+            implementation(libs.media3.ui.compose)
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
@@ -74,6 +80,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -27,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import kotlin.random.Random
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Alignment
@@ -61,12 +64,18 @@ private val DarkText = Color(0xFF1B1B1B)
 private val GreyText = Color(0xFF6F7378)
 private val ViewerChrome = AppChromeStyle(Color.Black, Color.Black, Color.White, Color.White)
 
-/** Photos' album list: the photo pack's albums, then the phone's own folders. Read-only. */
+/**
+ * Photos' album list: the photo pack's albums and the phone's own folders, mixed in a random order
+ * that's new each visit and steady while it's open. Read-only.
+ */
 @Composable
 fun PhotosAlbumsScreen(onBack: () -> Unit, onHome: () -> Unit, onOpenAlbum: (albumId: String) -> Unit) {
     val library by LocalAppContainer.current.mediaLibrary.state.collectAsStateWithLifecycle()
     AppScaffold(title = "Photos", style = AppChromeStyles.System, onBack = onBack, onHome = onHome) {
-        val (bundled, device) = library.albums.filter { it.photos.isNotEmpty() }.partition { !it.onDevice }
+        val seed = rememberSaveable { Random.nextInt() }
+        val albums = remember(library.albums, seed) {
+            library.albums.filter { it.photos.isNotEmpty() }.sortedBy { Random(seed xor it.id.hashCode()).nextInt() }
+        }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(150.dp),
             modifier = Modifier.fillMaxSize(),
@@ -74,8 +83,7 @@ fun PhotosAlbumsScreen(onBack: () -> Unit, onHome: () -> Unit, onOpenAlbum: (alb
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            section("Albums", bundled, onOpenAlbum)
-            if (device.isNotEmpty()) section("On this phone", device, onOpenAlbum)
+            section("Albums", albums, onOpenAlbum)
         }
     }
 }

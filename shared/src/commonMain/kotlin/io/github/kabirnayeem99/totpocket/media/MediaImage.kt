@@ -1,21 +1,18 @@
 package io.github.kabirnayeem99.totpocket.media
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import io.github.kabirnayeem99.totpocket.LocalAppContainer
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 
-/** Decodes pictures to at most a given size, caching recent ones. */
+/** Decodes pictures to at most a given size, for code that needs the pixels (e.g. a photo's colour). */
 interface ImageLoader {
     suspend fun load(source: ImageSource, maxPx: Int): ImageBitmap?
 }
@@ -24,9 +21,17 @@ object NoImageLoader : ImageLoader {
     override suspend fun load(source: ImageSource, maxPx: Int): ImageBitmap? = null
 }
 
+/** What Coil loads for [this]: an absolute file, a MediaStore content URI, or a web address. */
+fun ImageSource.coilModel(): String = when (this) {
+    is ImageSource.FilePath -> "file://$path"
+    is ImageSource.ContentUri -> uri
+    is ImageSource.Url -> url
+}
+
 /**
  * Shows [source] decoded to about [maxPx] on its long edge, fading in once it's ready. A soft grey
- * placeholder holds the space meanwhile, like a real gallery.
+ * placeholder holds the space meanwhile, like a real gallery. Loading, decoding and caching (memory,
+ * and disk for web pictures) are Coil's, set up once for the app.
  */
 @Composable
 fun MediaImage(
@@ -36,17 +41,14 @@ fun MediaImage(
     contentScale: ContentScale = ContentScale.Crop,
     placeholder: Color = Color(0xFFE9EAEE),
 ) {
-    val loader = LocalAppContainer.current.imageLoader
-    val bitmap by produceState<ImageBitmap?>(null, source, maxPx) { value = loader.load(source, maxPx) }
-    val alpha by animateFloatAsState(if (bitmap != null) 1f else 0f, tween(200), label = "imageFade")
-    Box(modifier.background(placeholder)) {
-        bitmap?.let {
-            Image(
-                bitmap = it,
-                contentDescription = null,
-                contentScale = contentScale,
-                modifier = Modifier.matchParentSize().graphicsLayer { this.alpha = alpha },
-            )
-        }
+    val context = LocalPlatformContext.current
+    val request = remember(context, source, maxPx) {
+        ImageRequest.Builder(context).data(source.coilModel()).size(maxPx).crossfade(200).build()
     }
+    AsyncImage(
+        model = request,
+        contentDescription = null,
+        contentScale = contentScale,
+        modifier = modifier.background(placeholder),
+    )
 }

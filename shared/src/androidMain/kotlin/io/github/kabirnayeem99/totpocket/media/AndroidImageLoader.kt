@@ -1,66 +1,74 @@
 package io.github.kabirnayeem99.totpocket.media
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import android.util.LruCache
-import android.util.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import kotlinx.coroutines.Dispatchers
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.request.crossfade
+import coil3.toBitmap
+import coil3.video.VideoFrameDecoder
 import io.github.kabirnayeem99.totpocket.online.CommonsPhotoSearch
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.cancellation.CancellationException
+import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
+import java.util.concurrent.TimeUnit
 
 /**
- * Decodes pack files with BitmapFactory (sub-sampled to the requested size) and phone media with
- * MediaStore thumbnails, which also works for video frames. Keeps an eighth of the heap as cache.
+ * TotPocket's one Coil image loader, shared by every picture on screen:
+ * - memory cache: a fifth of the app's memory, so scrolling back and swiping photos is instant;
+ * - disk cache: 100 MB for web pictures (the grown-ups' Commons search), so nothing downloads twice;
+ * - video frames decode as thumbnails for the phone's own videos;
+ * - web requests name the app, as Wikimedia asks.
+ * Coil loads and decodes on its own background threads, never the main one.
+ */
+private fun totPocketCoil(context: Context): coil3.ImageLoader {
+    val appContext = context.applicationContext
+    val http = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            chain.proceed(chain.request().newBuilder().header("User-Agent", CommonsPhotoSearch.USER_AGENT).build())
+        }
+        .build()
+    return coil3.ImageLoader.Builder(appContext)
+        .memoryCache { MemoryCache.Builder().maxSizePercent(appContext, 0.2).build() }
+        .diskCache {
+            DiskCache.Builder()
+                .directory(appContext.cacheDir.resolve("image_cache").toOkioPath())
+                .maxSizeBytes(100L * 1024 * 1024)
+                .build()
+        }
+        .components {
+            add(OkHttpNetworkFetcherFactory(callFactory = { http }))
+            add(VideoFrameDecoder.Factory())
+        }
+        .crossfade(true)
+        .build()
+}
+
+/**
+ * Sets up TotPocket's Coil loader (every `MediaImage` uses it) and, as the app's [ImageLoader],
+ * gives code that needs a picture's pixels — e.g. a slideshow photo's main colour — the same caches.
+ * Create once, at start-up.
  */
 class AndroidImageLoader(context: Context) : ImageLoader {
 
-    private val resolver = context.applicationContext.contentResolver
-    private val cache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 8).toInt()) {
-        override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount
-    }
+    private val appContext = context.applicationContext
+    private val coil = totPocketCoil(appContext).also { loader -> SingletonImageLoader.setSafe { loader } }
 
     override suspend fun load(source: ImageSource, maxPx: Int): ImageBitmap? {
-        val key = "$source@$maxPx"
-        cache.get(key)?.let { return it.asImageBitmap() }
-        val bitmap = withContext(Dispatchers.IO) {
-            try {
-                when (source) {
-                    is ImageSource.FilePath -> decodeFile(source.path, maxPx)
-                    is ImageSource.ContentUri -> resolver.loadThumbnail(Uri.parse(source.uri), Size(maxPx, maxPx), null)
-                    is ImageSource.Url -> decodeUrl(source.url, maxPx)
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
-        } ?: return null
-        cache.put(key, bitmap)
-        return bitmap.asImageBitmap()
-    }
-
-    /** Only the grown-ups' Commons search shows URLs. Read once, then sub-sampled like a file. */
-    private fun decodeUrl(url: String, maxPx: Int): Bitmap? {
-        val bytes = CommonsPhotoSearch.open(url).use { it.readBytes() }
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sampleSize(bounds, maxPx) })
-    }
-
-    private fun decodeFile(path: String, maxPx: Int): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(path, bounds)
-        return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sampleSize(bounds, maxPx) })
-    }
-
-    private fun sampleSize(bounds: BitmapFactory.Options, maxPx: Int): Int {
-        var sample = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxPx) sample *= 2
-        return sample
+        val request = ImageRequest.Builder(appContext)
+            .data(source.coilModel())
+            .size(maxPx)
+            // Readable pixels: hardware bitmaps can't be sampled for their colour.
+            .allowHardware(false)
+            .build()
+        val result = coil.execute(request) as? SuccessResult ?: return null
+        return result.image.toBitmap().asImageBitmap()
     }
 }
