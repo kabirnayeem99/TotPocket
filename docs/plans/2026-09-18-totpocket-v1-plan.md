@@ -18,7 +18,7 @@ ______________________________________________________________________
 | P4  | **Nothing to read**           | Icons and colours do the work. Text appears only as a secondary label for adults and is never needed to use the app.                                  |
 | P5  | **Forgiving input**           | Big targets, taps debounced, no failure states, no penalties. A wrong move in a game gently snaps back.                                               |
 | P6  | **Parent in control**         | Everything outside the app, plus settings, sits behind a parent gate that a toddler can't operate by chance.                                           |
-| P7  | **Offline, private**          | No network permission, no analytics, no ads, no accounts. All media is bundled.                                                                        |
+| P7  | **Offline, private**          | No analytics, no ads, no accounts. Media is bundled; the only network use is the grown-ups' PIN-gated Commons download (5 photos/day). |
 
 ______________________________________________________________________
 
@@ -321,7 +321,7 @@ parent settings screen should deep-link to `Settings.ACTION_SECURITY_SETTINGS` w
 
 ### 6.4 Permissions
 
-Only `VIBRATE`. No `INTERNET`, no storage, no contacts, and `CALL_PHONE` is never requested.
+`VIBRATE`, plus `INTERNET` for the grown-ups' Commons download only. No contacts, and `CALL_PHONE` is never requested.
 
 ______________________________________________________________________
 

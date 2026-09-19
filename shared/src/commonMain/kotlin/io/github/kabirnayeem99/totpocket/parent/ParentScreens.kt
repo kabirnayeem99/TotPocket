@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kabirnayeem99.totpocket.LocalAppContainer
+import io.github.kabirnayeem99.totpocket.online.DownloadQuota
 import io.github.kabirnayeem99.totpocket.settings.ParentSettings
 import io.github.kabirnayeem99.totpocket.ui.components.AppChromeStyle
 import io.github.kabirnayeem99.totpocket.ui.components.AppScaffold
@@ -48,10 +49,10 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration
 
 /** HyperOS Settings: light grey page, white rounded groups. */
-private val SettingsChrome = AppChromeStyle(Color(0xFFF5F5F7), Color(0xFFF5F5F7), Color(0xFF1B1B1B), Color(0xFF1B1B1B))
-private val Accent = Color(0xFF3482FF)
-private val DarkText = Color(0xFF1B1B1B)
-private val GreyText = Color(0xFF8A8A8E)
+internal val SettingsChrome = AppChromeStyle(Color(0xFFF5F5F7), Color(0xFFF5F5F7), Color(0xFF1B1B1B), Color(0xFF1B1B1B))
+internal val Accent = Color(0xFF3482FF)
+internal val DarkText = Color(0xFF1B1B1B)
+internal val GreyText = Color(0xFF8A8A8E)
 
 // ---------------------------------------------------------------- gate
 
@@ -158,7 +159,7 @@ private fun PadKey(label: String, onClick: () -> Unit, filled: Boolean = true) {
 // ---------------------------------------------------------------- settings
 
 @Composable
-fun ParentSettingsScreen(onBack: () -> Unit, onHome: () -> Unit) {
+fun ParentSettingsScreen(onBack: () -> Unit, onHome: () -> Unit, onAddPhotos: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { ParentSettingsViewModel(container.settingsStore, container.device) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -167,7 +168,7 @@ fun ParentSettingsScreen(onBack: () -> Unit, onHome: () -> Unit) {
         viewModel.onAction(ParentSettingsAction.Refresh)
         onPauseOrDispose { }
     }
-    ParentSettingsContent(state, viewModel::onAction, onBack, onHome)
+    ParentSettingsContent(state, viewModel::onAction, onBack, onHome, onAddPhotos)
 }
 
 @Composable
@@ -176,6 +177,7 @@ fun ParentSettingsContent(
     onAction: (ParentSettingsAction) -> Unit,
     onBack: () -> Unit,
     onHome: () -> Unit,
+    onAddPhotos: () -> Unit,
 ) {
     AppScaffold(title = "TotPocket settings", style = SettingsChrome, onBack = onBack, onHome = onHome) {
         // Grown-up screen: allowed to scroll, it's not for the child.
@@ -205,6 +207,11 @@ fun ParentSettingsContent(
                         )
                     }
                 }
+            }
+            Group {
+                Label("Add photos", "Search Wikimedia Commons and add up to ${DownloadQuota.LIMIT} photos a day to Photos.")
+                Spacer(Modifier.height(12.dp))
+                WideButton(text = "Search photos", background = Accent, onClick = onAddPhotos)
             }
             Group {
                 Label(
@@ -268,7 +275,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onClick
 }
 
 @Composable
-private fun Group(content: @Composable ColumnScope.() -> Unit) {
+internal fun Group(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(20.dp),
         content = content,
@@ -276,7 +283,7 @@ private fun Group(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun Label(title: String, subtitle: String) {
+internal fun Label(title: String, subtitle: String) {
     Text(title, color = DarkText, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     Spacer(Modifier.height(2.dp))
     Text(subtitle, color = GreyText, fontSize = 13.sp)
@@ -300,7 +307,7 @@ private fun Choice(text: String, selected: Boolean, onClick: () -> Unit, modifie
 }
 
 @Composable
-private fun WideButton(text: String, background: Color, onClick: () -> Unit) {
+internal fun WideButton(text: String, background: Color, onClick: () -> Unit) {
     ToddlerButton(
         onClick = onClick,
         contentDescription = text,
@@ -320,6 +327,6 @@ private fun WideButton(text: String, background: Color, onClick: () -> Unit) {
 @Composable
 private fun ParentSettingsPreview() {
     TotPocketTheme {
-        ParentSettingsContent(ParentSettingsUiState(ParentSettings(playLimitMinutes = 15), isPinned = false), onAction = {}, onBack = {}, onHome = {})
+        ParentSettingsContent(ParentSettingsUiState(ParentSettings(playLimitMinutes = 15), isPinned = false), onAction = {}, onBack = {}, onHome = {}, onAddPhotos = {})
     }
 }

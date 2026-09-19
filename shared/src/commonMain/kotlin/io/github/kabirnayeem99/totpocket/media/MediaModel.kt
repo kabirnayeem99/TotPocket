@@ -14,6 +14,9 @@ sealed interface ImageSource {
 
     /** A picture or video on the phone, as a MediaStore content URI. */
     data class ContentUri(val uri: String) : ImageSource
+
+    /** A picture on the internet — only used by the grown-ups' online preview. */
+    data class Url(val url: String) : ImageSource
 }
 
 @Immutable

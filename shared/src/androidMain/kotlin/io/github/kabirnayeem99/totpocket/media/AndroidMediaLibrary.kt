@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import io.github.kabirnayeem99.totpocket.online.PhotoDownloads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,10 +27,11 @@ import java.util.zip.ZipInputStream
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * [MediaLibrary] on Android: the bundled photo pack (unzipped once into app storage) plus the
- * phone's own pictures and videos from MediaStore when read access is granted. Only ever reads.
+ * [MediaLibrary] on Android: the bundled photo pack (unzipped once into app storage), the photos
+ * grown-ups added from Commons, and the phone's own pictures and videos from MediaStore when read
+ * access is granted. Never changes the phone's media.
  */
-class AndroidMediaLibrary(context: Context) : MediaLibrary {
+class AndroidMediaLibrary(context: Context, private val downloads: PhotoDownloads) : MediaLibrary {
 
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,10 +40,15 @@ class AndroidMediaLibrary(context: Context) : MediaLibrary {
 
     private var packAlbums: List<MediaAlbum> = emptyList()
     private var packVideos: List<MediaVideo> = emptyList()
+    private var deviceAlbums: List<MediaAlbum> = emptyList()
+    private var deviceVideos: List<MediaVideo> = emptyList()
+    private var loaded = false
     private var loadJob: Job? = null
 
     init {
         load(includePack = true)
+        // Added photos appear as soon as they're saved; the publish runs on this IO scope.
+        scope.launch { downloads.photos.collect { loadJob?.join(); publish() } }
     }
 
     override fun refresh() = load(includePack = false)
@@ -51,14 +58,23 @@ class AndroidMediaLibrary(context: Context) : MediaLibrary {
         loadJob = scope.launch {
             previous?.join()
             if (includePack) loadPack()
-            val deviceAlbums = runCatching { deviceAlbums() }.getOrDefault(emptyList())
-            val deviceVideos = runCatching { deviceVideos() }.getOrDefault(emptyList())
-            _state.value = MediaLibraryState(
-                loading = false,
-                albums = packAlbums + deviceAlbums,
-                videos = packVideos + deviceVideos,
-            )
+            deviceAlbums = runCatching { readDeviceAlbums() }.getOrDefault(emptyList())
+            deviceVideos = runCatching { readDeviceVideos() }.getOrDefault(emptyList())
+            loaded = true
+            publish()
         }
+    }
+
+    @Synchronized
+    private fun publish() {
+        if (!loaded) return
+        val added = downloads.photos.value.map { it.photo }
+        val addedAlbum = if (added.isEmpty()) emptyList() else listOf(MediaAlbum(ADDED_ALBUM, "New photos", added.asReversed(), onDevice = false))
+        _state.value = MediaLibraryState(
+            loading = false,
+            albums = addedAlbum + packAlbums + deviceAlbums,
+            videos = packVideos + deviceVideos,
+        )
     }
 
     // ---------------------------------------------------------------- bundled pack
@@ -114,7 +130,7 @@ class AndroidMediaLibrary(context: Context) : MediaLibrary {
     }
 
     /** The phone's picture folders ("Camera", "WhatsApp Images", …), newest pictures first. */
-    private fun deviceAlbums(): List<MediaAlbum> {
+    private fun readDeviceAlbums(): List<MediaAlbum> {
         if (!canReadImages()) return emptyList()
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
@@ -152,7 +168,7 @@ class AndroidMediaLibrary(context: Context) : MediaLibrary {
     }
 
     /** The phone's videos, newest first, as YouTube videos from a "channel" named after their folder. */
-    private fun deviceVideos(): List<MediaVideo> {
+    private fun readDeviceVideos(): List<MediaVideo> {
         if (!canReadVideos()) return emptyList()
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
@@ -186,6 +202,7 @@ class AndroidMediaLibrary(context: Context) : MediaLibrary {
     private companion object {
         const val TAG = "TotPocketMedia"
         const val PACK_PATH = "files/media/pack.zip"
+        const val ADDED_ALBUM = "added"
         val DateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
     }
 }

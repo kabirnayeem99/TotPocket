@@ -9,6 +9,7 @@ import android.util.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
+import io.github.kabirnayeem99.totpocket.online.CommonsPhotoSearch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -31,6 +32,7 @@ class AndroidImageLoader(context: Context) : ImageLoader {
                 when (source) {
                     is ImageSource.FilePath -> decodeFile(source.path, maxPx)
                     is ImageSource.ContentUri -> resolver.loadThumbnail(Uri.parse(source.uri), Size(maxPx, maxPx), null)
+                    is ImageSource.Url -> decodeUrl(source.url, maxPx)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -42,11 +44,23 @@ class AndroidImageLoader(context: Context) : ImageLoader {
         return bitmap.asImageBitmap()
     }
 
+    /** Only the grown-ups' Commons search shows URLs. Read once, then sub-sampled like a file. */
+    private fun decodeUrl(url: String, maxPx: Int): Bitmap? {
+        val bytes = CommonsPhotoSearch.open(url).use { it.readBytes() }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sampleSize(bounds, maxPx) })
+    }
+
     private fun decodeFile(path: String, maxPx: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(path, bounds)
+        return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sampleSize(bounds, maxPx) })
+    }
+
+    private fun sampleSize(bounds: BitmapFactory.Options, maxPx: Int): Int {
         var sample = 1
         while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxPx) sample *= 2
-        return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+        return sample
     }
 }

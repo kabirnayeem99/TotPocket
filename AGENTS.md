@@ -30,7 +30,9 @@ before planning or writing any feature.
    and a `Channel` for one-shot effects. No platform types in ViewModels. Screen/content split.
 1. **No new dependencies without a reason.** v1 has no navigation library, no DI framework and no
    icons artifact.
-1. **Offline and private:** no `INTERNET` permission, no analytics, no ads.
+1. **Offline for the child, private:** no analytics, no ads, no accounts. The only network use is
+   the PIN-gated grown-ups' "Add photos" screen (Wikimedia Commons, at most 5 photos a day, counted
+   on the phone); nothing the child can reach goes online.
 
 ## Commands
 

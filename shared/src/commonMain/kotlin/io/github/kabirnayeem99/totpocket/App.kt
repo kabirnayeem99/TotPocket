@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kabirnayeem99.totpocket.parent.AddPhotosScreen
 import io.github.kabirnayeem99.totpocket.parent.ParentGateScreen
 import io.github.kabirnayeem99.totpocket.parent.ParentSettingsScreen
 import io.github.kabirnayeem99.totpocket.session.BedtimeScreen
@@ -172,6 +173,11 @@ private fun RouteContent(route: Route, navigator: Navigator, onParentUnlocked: (
                 navigator.replace(Route.Parent.Settings)
             },
         )
-        Route.Parent.Settings -> ParentSettingsScreen(onBack = onBack, onHome = onHome)
+        Route.Parent.Settings -> ParentSettingsScreen(
+            onBack = onBack,
+            onHome = onHome,
+            onAddPhotos = { navigator.push(Route.Parent.AddPhotos) },
+        )
+        Route.Parent.AddPhotos -> AddPhotosScreen(onBack = onBack, onHome = onHome)
     }
 }

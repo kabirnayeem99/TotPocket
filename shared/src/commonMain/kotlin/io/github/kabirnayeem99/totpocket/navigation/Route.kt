@@ -30,6 +30,8 @@ sealed interface Route {
     sealed interface Parent : Route {
         data object Gate : Parent
         data object Settings : Parent
+        /** Search Wikimedia Commons and add a few photos a day. */
+        data object AddPhotos : Parent
     }
 
     companion object {
@@ -45,6 +47,7 @@ sealed interface Route {
             Games.ShapeMatch -> "games/shape-match"
             Parent.Gate -> "parent/gate"
             Parent.Settings -> "parent/settings"
+            Parent.AddPhotos -> "parent/add-photos"
         }
 
         fun decode(value: String): Route = when {
@@ -60,6 +63,7 @@ sealed interface Route {
             value == "games/shape-match" -> Games.ShapeMatch
             value == "parent/gate" -> Parent.Gate
             value == "parent/settings" -> Parent.Settings
+            value == "parent/add-photos" -> Parent.AddPhotos
             else -> Home
         }
     }
