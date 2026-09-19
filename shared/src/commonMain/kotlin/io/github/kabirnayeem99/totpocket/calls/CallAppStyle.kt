@@ -54,14 +54,5 @@ fun CallApp.style(): CallAppStyle = when (this) {
     )
 }
 
-/** Soft, photo-like backgrounds for contact avatars, so each face gets its own colour. */
-fun Contact.avatarColor(): Color = AvatarColors[(id.value.hashCode() and Int.MAX_VALUE) % AvatarColors.size]
-
-private val AvatarColors = listOf(
-    Color(0xFFFFE0B2),
-    Color(0xFFC8E6C9),
-    Color(0xFFBBDEFB),
-    Color(0xFFF8BBD0),
-    Color(0xFFD1C4E9),
-    Color(0xFFFFF59D),
-)
+/** The contact's own avatar colour — each one differs, so the child can tell them apart. */
+fun Contact.avatarColor(): Color = color

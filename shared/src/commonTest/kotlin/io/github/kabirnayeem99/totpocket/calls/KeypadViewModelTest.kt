@@ -45,13 +45,13 @@ class KeypadViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun `calling after dialling rings the silly monkey and clears the number`() = runTest(dispatcher) {
+    fun `calling after dialling rings the unknown caller and clears the number`() = runTest(dispatcher) {
         val viewModel = KeypadViewModel(player)
         viewModel.effects.test {
             viewModel.onAction(KeypadAction.KeyPressed(KeypadKey.Seven))
             assertTrue(viewModel.state.value.canCall)
             viewModel.onAction(KeypadAction.CallPressed)
-            assertEquals(KeypadEffect.StartCall(CallContacts.SillyMonkey.id), awaitItem())
+            assertEquals(KeypadEffect.StartCall(CallContacts.UnknownCaller.id), awaitItem())
             assertEquals("", viewModel.state.value.dialled)
         }
     }

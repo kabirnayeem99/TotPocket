@@ -2,6 +2,7 @@ package io.github.kabirnayeem99.totpocket.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -121,7 +122,11 @@ fun AppTopBar(
 @Composable
 fun NavigationButtons(color: Color, onHome: () -> Unit, modifier: Modifier = Modifier) {
     val back = rememberSystemBack()
-    Row(modifier.fillMaxWidth().height(NavigationButtonsHeight), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier.fillMaxWidth().height(NavigationButtonsHeight),
+        horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         NavigationButton("Back", back) { drawBackTriangle(color) }
         NavigationButton("Home", onHome) { drawCircle(color, radius = size.minDimension / 2 - 1.dp.toPx(), style = Stroke(2.dp.toPx())) }
         NavigationButton("Recent apps", onHome) {
@@ -138,11 +143,11 @@ fun NavigationButtons(color: Color, onHome: () -> Unit, modifier: Modifier = Mod
 }
 
 @Composable
-private fun RowScope.NavigationButton(label: String, onClick: () -> Unit, glyph: DrawScope.() -> Unit) {
+private fun NavigationButton(label: String, onClick: () -> Unit, glyph: DrawScope.() -> Unit) {
     ToddlerButton(
         onClick = onClick,
         contentDescription = label,
-        modifier = Modifier.weight(1f).fillMaxHeight(),
+        modifier = Modifier.width(88.dp).fillMaxHeight(),
         shape = RoundedCornerShape(0.dp),
         color = Color.Transparent,
         outline = Color.Transparent,

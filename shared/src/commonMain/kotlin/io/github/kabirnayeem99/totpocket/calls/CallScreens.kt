@@ -8,6 +8,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.ui.layout.ContentScale
+import org.jetbrains.compose.resources.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -197,7 +200,21 @@ private fun Avatar(contact: Contact, size: Dp, modifier: Modifier = Modifier) {
         modifier.size(size).clip(CircleShape).background(contact.avatarColor()),
         contentAlignment = Alignment.Center,
     ) {
-        Text(contact.emoji, fontSize = (size.value * 0.55f).sp)
+        ContactFaceContent(contact, size)
+    }
+}
+
+/** The portrait or letter inside a contact's circle of [size]. */
+@Composable
+private fun ContactFaceContent(contact: Contact, size: Dp) {
+    when (val face = contact.face) {
+        is ContactFace.Picture -> Image(
+            painter = painterResource(face.resource),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().padding(if (face.fillsCircle) 0.dp else size * 0.12f),
+        )
+        is ContactFace.Initial -> Text(face.letter, color = contact.ink, fontSize = (size.value * 0.45f).sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -555,17 +572,22 @@ private fun CallerVideo(state: CallUiState, style: CallAppStyle, modifier: Modif
     )
     val talking = state.isTalking
     Box(modifier.background(Brush.verticalGradient(listOf(state.contact.avatarColor(), Color(0xFF2B2F3A)))), contentAlignment = Alignment.Center) {
-        Text(
-            text = if (state.phase == CallPhase.Ended) "👋" else state.contact.emoji,
-            fontSize = 220.sp,
-            modifier = Modifier.graphicsLayer {
-                translationX = sway * 10.dp.toPx()
-                rotationZ = if (talking) sway * 3f else 0f
-                val breathe = if (talking) 1f + sway * 0.02f else 1f
-                scaleX = breathe
-                scaleY = breathe
-            },
-        )
+        Box(
+            Modifier
+                .graphicsLayer {
+                    translationX = sway * 10.dp.toPx()
+                    rotationZ = if (talking) sway * 3f else 0f
+                    val breathe = if (talking) 1f + sway * 0.02f else 1f
+                    scaleX = breathe
+                    scaleY = breathe
+                }
+                .size(260.dp)
+                .clip(CircleShape)
+                .background(state.contact.avatarColor()),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.phase == CallPhase.Ended) Text("👋", fontSize = 140.sp) else ContactFaceContent(state.contact, 260.dp)
+        }
     }
 }
 

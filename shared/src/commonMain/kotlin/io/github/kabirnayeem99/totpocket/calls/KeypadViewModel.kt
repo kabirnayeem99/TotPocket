@@ -38,7 +38,7 @@ sealed interface KeypadEffect {
 
 /**
  * Pretend dialling, like the real dialer: every key beeps and its digit appears. Whatever is
- * dialled, calling rings the silly monkey — no real number is ever called.
+ * dialled, calling rings an unknown caller — no real number is ever called.
  */
 class KeypadViewModel(private val player: SoundPlayer) : ViewModel() {
 
@@ -61,7 +61,7 @@ class KeypadViewModel(private val player: SoundPlayer) : ViewModel() {
             KeypadAction.CallPressed -> {
                 if (!_state.value.canCall) return
                 _state.update { it.copy(dialled = "") }
-                _effects.trySend(KeypadEffect.StartCall(CallContacts.SillyMonkey.id))
+                _effects.trySend(KeypadEffect.StartCall(CallContacts.UnknownCaller.id))
             }
         }
     }
