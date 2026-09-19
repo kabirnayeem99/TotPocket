@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 enum class YouTubeTab { Home, Shorts }
 
@@ -83,7 +84,8 @@ sealed interface YouTubeAction {
 /**
  * The pretend YouTube: photo-pack slideshows and the phone's own videos. A slideshow shows each
  * photo for a few seconds (playing its sound, if any). On the watch page and full screen a video
- * plays once; in Shorts, as on the real app, the next one starts when it ends.
+ * plays once; in Shorts, as on the real app, the next one starts when it ends. Slideshows and
+ * the phone's videos are mixed in a random order, new each time YouTube is opened.
  */
 class YouTubeViewModel(
     library: MediaLibrary,
@@ -95,9 +97,12 @@ class YouTubeViewModel(
     private var slideshow: Job? = null
     private var videos: List<MediaVideo> = emptyList()
 
+    // One seed per visit: the order stays put while YouTube is open, even as the library reloads.
+    private val shuffleSeed = Random.nextInt()
+
     val state: StateFlow<YouTubeUiState> = combine(library.state, tab, playerState) { library, tab, playing ->
-        videos = library.videos
-        YouTubeUiState(library.loading, library.videos, tab, playing)
+        videos = library.videos.sortedBy { Random(shuffleSeed xor it.id.hashCode()).nextInt() }
+        YouTubeUiState(library.loading, videos, tab, playing)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YouTubeUiState(true, emptyList(), YouTubeTab.Home, null))
 
     fun onAction(action: YouTubeAction) {
