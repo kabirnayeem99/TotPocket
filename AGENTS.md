@@ -39,6 +39,7 @@ before planning or writing any feature.
 Only run Gradle when the task needs verification or the user asks:
 
 - `./gradlew :androidApp:assembleDebug` — build the Android app
+- `tools/build_release.sh [--install]` — R8 release APK, verified, into `dist/` ([docs/install.md](docs/install.md))
 - `./gradlew :shared:testAndroidHostTest` — shared unit tests (count the results; don't trust a
   green `./gradlew test`)
 - `./gradlew -PenableIos=true :shared:iosSimulatorArm64Test` — iOS tests (optional). iOS targets are off by default (`enableIos=false` in `gradle.properties`) so Android builds stay fast.

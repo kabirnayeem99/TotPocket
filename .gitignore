@@ -25,3 +25,4 @@ tools/.commons_cache/
 keystore.properties
 *.jks
 *.keystore
+dist/

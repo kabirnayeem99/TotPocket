@@ -17,6 +17,8 @@ This is a Kotlin Multiplatform project targeting Android, iOS.
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
 
 - Android app: `./gradlew :androidApp:assembleDebug`
+- Release APK for a phone (R8-shrunk, checked, copied to `dist/`): `tools/build_release.sh`. See
+  [docs/install.md](docs/install.md) for signing, installing, first-time setup and adding photos.
 - iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
 
 ### Running tests
