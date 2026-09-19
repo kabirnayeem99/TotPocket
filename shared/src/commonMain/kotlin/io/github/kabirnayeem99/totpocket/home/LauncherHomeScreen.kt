@@ -31,11 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +59,7 @@ import org.jetbrains.compose.resources.painterResource
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.random.Random
 
 /** Apps on the page, with labels — like the first page of a Xiaomi home screen. */
 private val PageApps = listOf(LauncherApp.YouTube, LauncherApp.Imo, LauncherApp.Games)
@@ -67,7 +72,7 @@ private val IconSize = 60.dp
 private const val Columns = 4
 
 /**
- * TotPocket's home, dressed as a HyperOS home screen on a playful sky wallpaper: a status line with
+ * TotPocket's home, dressed as a HyperOS home screen on a calm night-sky wallpaper: a status line with
  * the time, a clock widget, labelled app icons on a 4-column grid and a frosted dock. [overlay]
  * sits on top (the hidden parent-gate corner).
  */
@@ -204,37 +209,64 @@ private fun PageDots() {
     }
 }
 
-/** A soft morning sky: blue at the top fading through mint to a warm sunny yellow. */
+/** A calm night sky: deep navy at the top, through indigo, to a soft purple glow at the horizon. */
 private val SkyGradient = Brush.verticalGradient(
-    listOf(Color(0xFF6EC6FF), Color(0xFF8ED8F8), Color(0xFFA8E6CF), Color(0xFFFFE29A)),
+    listOf(Color(0xFF0B1130), Color(0xFF16215A), Color(0xFF2B2F78), Color(0xFF4B3A82)),
 )
 
-/** Fluffy clouds, a smiling sun and a few stars, drawn once — nothing moves. */
+/** Where the small stars sit, as fractions of the screen, with their size and brightness. Fixed, so they never jump. */
+private val StarDots: List<Triple<Offset, Float, Float>> = Random(2026).let { random ->
+    List(60) {
+        Triple(
+            Offset(random.nextFloat(), random.nextFloat() * 0.72f),
+            0.9f + random.nextFloat() * 1.6f,
+            0.35f + random.nextFloat() * 0.6f,
+        )
+    }
+}
+
+/** A crescent moon, twinkly stars and two faint clouds, drawn once — nothing moves. */
 @Composable
 private fun SkyDecorations(modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        // Sun, top right.
-        drawCircle(Color(0xFFFFF1B8), radius = w * 0.15f, center = Offset(w * 0.84f, h * 0.2f))
-        drawCircle(Color(0xFFFFD54F), radius = w * 0.11f, center = Offset(w * 0.84f, h * 0.2f))
-        cloud(Offset(w * 0.18f, h * 0.36f), w * 0.1f)
-        cloud(Offset(w * 0.7f, h * 0.43f), w * 0.08f)
-        cloud(Offset(w * 0.32f, h * 0.53f), w * 0.06f)
-        listOf(Offset(0.12f, 0.46f), Offset(0.55f, 0.33f), Offset(0.9f, 0.55f), Offset(0.45f, 0.62f)).forEach {
-            star(Offset(w * it.x, h * it.y), w * 0.022f)
+        StarDots.forEach { (at, radius, alpha) ->
+            drawCircle(Color.White.copy(alpha = alpha), radius = radius * density, center = Offset(w * at.x, h * at.y))
         }
+        moon(Offset(w * 0.8f, h * 0.2f), w * 0.1f)
+        listOf(Offset(0.12f, 0.46f), Offset(0.55f, 0.33f), Offset(0.9f, 0.52f), Offset(0.4f, 0.6f), Offset(0.25f, 0.28f)).forEach {
+            star(Offset(w * it.x, h * it.y), w * 0.018f)
+        }
+        cloud(Offset(w * 0.2f, h * 0.4f), w * 0.08f, alpha = 0.10f)
+        cloud(Offset(w * 0.66f, h * 0.5f), w * 0.06f, alpha = 0.08f)
     }
 }
 
-private fun DrawScope.cloud(centre: Offset, r: Float) {
-    // Opaque, so the overlapping puffs read as one cloud with no seams.
-    val white = Color(0xFFF7FCFF)
-    drawCircle(white, r, centre)
-    drawCircle(white, r * 0.8f, centre + Offset(-r * 1.1f, r * 0.25f))
-    drawCircle(white, r * 0.85f, centre + Offset(r * 1.1f, r * 0.2f))
-    drawCircle(white, r * 0.6f, centre + Offset(r * 1.9f, r * 0.45f))
-    drawRect(white, topLeft = centre + Offset(-r * 1.1f, r * 0.2f), size = androidx.compose.ui.geometry.Size(r * 3f, r * 0.85f))
+/** A glowing crescent moon: a pale disc with a smaller disc cut out of its side. */
+private fun DrawScope.moon(centre: Offset, r: Float) {
+    drawCircle(Color(0xFFFFF4C8).copy(alpha = 0.12f), radius = r * 1.9f, center = centre)
+    drawCircle(Color(0xFFFFF4C8).copy(alpha = 0.10f), radius = r * 1.4f, center = centre)
+    val crescent = Path.combine(
+        PathOperation.Difference,
+        Path().apply { addOval(Rect(centre, r)) },
+        Path().apply { addOval(Rect(centre + Offset(r * 0.45f, -r * 0.25f), r * 0.85f)) },
+    )
+    drawPath(crescent, Color(0xFFFFF1B8))
+}
+
+private fun DrawScope.cloud(centre: Offset, r: Float, alpha: Float) {
+    // Faint and see-through: drawn in one layer so the overlapping puffs don't stack into seams.
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(Rect(centre + Offset(-r * 2f, -r * 1.1f), centre + Offset(r * 2.6f, r * 1.2f)), Paint().apply { this.alpha = alpha })
+        val white = Color.White
+        drawCircle(white, r, centre)
+        drawCircle(white, r * 0.8f, centre + Offset(-r * 1.1f, r * 0.25f))
+        drawCircle(white, r * 0.85f, centre + Offset(r * 1.1f, r * 0.2f))
+        drawCircle(white, r * 0.6f, centre + Offset(r * 1.9f, r * 0.45f))
+        drawRect(white, topLeft = centre + Offset(-r * 1.1f, r * 0.2f), size = androidx.compose.ui.geometry.Size(r * 3f, r * 0.85f))
+        canvas.restore()
+    }
 }
 
 private fun DrawScope.star(centre: Offset, r: Float) {
