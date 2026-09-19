@@ -151,6 +151,8 @@ SUBJECTS = {
     "thobe": ("Thobes", None),
     "king": ("Ottoman sultans", None),
     "tasbih": ("Tasbih", None),
+    "snake": ("Snakes", None),
+    "landscape": ("Beautiful Bangladesh", None),
     "airplane": ("Aeroplanes", None),
     "helicopter": ("Helicopters", None),
     "firetruck": ("Fire engines", None),
